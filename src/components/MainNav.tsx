@@ -43,14 +43,6 @@ const MainNav = () => {
               </MenubarMenu>
 
               <MenubarMenu>
-                <MenubarTrigger className="font-medium">Careers</MenubarTrigger>
-                <MenubarContent>
-                  <MenubarItem>Open Positions</MenubarItem>
-                  <MenubarItem>Join Our Team</MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-
-              <MenubarMenu>
                 <MenubarTrigger className="font-medium">News</MenubarTrigger>
                 <MenubarContent>
                   <MenubarItem>Latest Updates</MenubarItem>
@@ -96,7 +88,6 @@ const MainNav = () => {
               <SheetContent side="right">
                 <div className="flex flex-col gap-4 mt-8">
                   <Button variant="ghost" className="justify-start">Templates</Button>
-                  <Button variant="ghost" className="justify-start">Careers</Button>
                   <Button variant="ghost" className="justify-start">News</Button>
                   <Button variant="ghost" className="justify-start">Support</Button>
                   <div className="border-t border-white/10 pt-4 mt-4">
