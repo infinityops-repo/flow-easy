@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Paperclip, Share2 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +11,8 @@ export const WorkflowInput = () => {
   const [platform, setPlatform] = useState<string>('n8n');
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [generatedWorkflow, setGeneratedWorkflow] = useState<string | null>(null);
+  const [showWorkflow, setShowWorkflow] = useState(false);
   const { toast } = useToast();
 
   const handleGenerateWorkflow = async () => {
@@ -48,14 +51,13 @@ export const WorkflowInput = () => {
         throw new Error(error);
       }
 
+      setGeneratedWorkflow(workflow);
+      setShowWorkflow(true);
+      
       toast({
         title: "Success",
         description: "Workflow generated successfully!",
       });
-
-      // Here you can handle the workflow response, 
-      // such as displaying it in a modal or new page
-      console.log('Generated workflow:', workflow);
 
     } catch (error) {
       console.error('Error:', error);
@@ -107,6 +109,22 @@ export const WorkflowInput = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={showWorkflow} onOpenChange={setShowWorkflow}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generated Workflow</DialogTitle>
+            <DialogDescription>
+              Here's your generated workflow for {platform}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 prose prose-sm max-w-none">
+            <pre className="whitespace-pre-wrap bg-background/80 p-4 rounded-md">
+              {generatedWorkflow}
+            </pre>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
