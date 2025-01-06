@@ -8,7 +8,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -19,8 +19,26 @@ serve(async (req) => {
     }
 
     const systemPrompt = `You are an expert automation workflow creator for ${platform}. 
-    Create a detailed workflow that accomplishes the user's goal. 
-    Format the response in markdown with clear steps, node configurations, and connections.`;
+    Create a workflow that accomplishes the user's goal. 
+    Your response must be a valid JSON object with the following structure:
+    {
+      "name": "workflow name",
+      "description": "brief description",
+      "nodes": [
+        {
+          "id": "unique node id",
+          "type": "node type (trigger, action, etc)",
+          "name": "node name",
+          "parameters": { node specific parameters }
+        }
+      ],
+      "connections": [
+        {
+          "sourceNode": "source node id",
+          "targetNode": "target node id"
+        }
+      ]
+    }`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -45,10 +63,16 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const workflow = data.choices[0].message.content;
+    const workflowText = data.choices[0].message.content;
+    
+    // Parse the response to ensure it's valid JSON
+    const workflow = JSON.parse(workflowText);
+
+    // Generate a shareable URL (you can implement storage later)
+    const shareableUrl = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(workflow, null, 2))}`;
 
     return new Response(
-      JSON.stringify({ workflow }),
+      JSON.stringify({ workflow, shareableUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
