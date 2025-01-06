@@ -1,3 +1,5 @@
+import { nodeValidators } from "./nodeValidators.ts";
+
 // Workflow structure validator
 export const validateWorkflow = (workflow: any, platform: string) => {
   if (!workflow.nodes || !workflow.connections || !Array.isArray(workflow.nodes)) {
