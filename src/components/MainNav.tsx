@@ -35,7 +35,7 @@ const MainNav = () => {
             .from('profiles')
             .select('full_name, username')
             .eq('id', session.user.id)
-            .maybeSingle(); // Changed from single() to maybeSingle()
+            .maybeSingle();
 
           if (error) {
             console.error('Error fetching profile:', error);
@@ -45,7 +45,6 @@ const MainNav = () => {
           if (profile) {
             setUserName(profile.full_name || profile.username || 'Usuário');
           } else {
-            // If no profile exists, create one
             const { error: insertError } = await supabase
               .from('profiles')
               .insert([{ id: session.user.id }]);
@@ -70,16 +69,32 @@ const MainNav = () => {
   const handleSignOut = async () => {
     try {
       // First check if we have a valid session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        navigate('/auth');
+        return;
+      }
+
       if (!session) {
         // If no session exists, just redirect to auth page
         navigate('/auth');
         return;
       }
 
+      // Now we know we have a valid session, try to sign out
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error signing out:', error);
+        if (error.message?.includes('session_not_found')) {
+          // If session not found, just redirect to auth
+          navigate('/auth');
+          return;
+        }
+        throw error;
+      }
       
       toast({
         title: "Logout realizado com sucesso",
@@ -88,17 +103,15 @@ const MainNav = () => {
       
       navigate('/auth');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error during sign out:', error);
       toast({
         variant: "destructive",
         title: "Erro ao realizar logout",
         description: "Ocorreu um erro ao tentar desconectar da sua conta",
       });
       
-      // Force navigation to auth page if we get a session error
-      if (error.message?.includes('session_not_found')) {
-        navigate('/auth');
-      }
+      // Force navigation to auth page if we get any error
+      navigate('/auth');
     }
   };
 
