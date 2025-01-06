@@ -4,9 +4,9 @@ import { Separator } from "@/components/ui/separator";
 export const Footer = () => {
   return (
     <footer className="bg-secondary/30">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
+          <div className="text-center md:text-left">
             <h3 className="font-semibold mb-4">Company</h3>
             <ul className="space-y-2">
               <li><a href="#" className="hover:text-primary">About</a></li>
@@ -14,16 +14,16 @@ export const Footer = () => {
               <li><a href="#" className="hover:text-primary">Contact</a></li>
             </ul>
           </div>
-          <div>
+          <div className="text-center md:text-left">
             <h3 className="font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               <li><a href="#" className="hover:text-primary">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-primary">Terms of Service</a></li>
             </ul>
           </div>
-          <div>
+          <div className="text-center md:text-left">
             <h3 className="font-semibold mb-4">Follow Us</h3>
-            <div className="flex space-x-4">
+            <div className="flex justify-center md:justify-start space-x-4">
               <a href="#" className="hover:text-primary">
                 <span className="sr-only">Twitter</span>
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
