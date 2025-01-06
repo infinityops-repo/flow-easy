@@ -17,10 +17,10 @@ serve(async (req) => {
     const { prompt, platform } = await req.json();
 
     if (!prompt || !platform) {
-      throw new Error('Prompt and platform are required');
+      throw new Error('Prompt e plataforma são obrigatórios');
     }
 
-    console.log('Processing request:', { prompt, platform });
+    console.log('Processando solicitação:', { prompt, platform });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -37,7 +37,7 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Create a workflow for: ${prompt}. Return ONLY the JSON workflow object.` 
+            content: `Crie um workflow para: ${prompt}. Retorne APENAS o objeto JSON do workflow.` 
           }
         ],
         temperature: 0.7,
@@ -46,25 +46,25 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData}`);
+      console.error('Erro na API do OpenAI:', errorData);
+      throw new Error(`Erro na API do OpenAI: ${errorData}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI response received');
+    console.log('Resposta do OpenAI recebida');
 
     if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response from OpenAI');
+      throw new Error('Resposta inválida do OpenAI');
     }
 
     let workflow = null;
     
     try {
       const workflowText = data.choices[0].message.content.trim();
-      console.log('Generated workflow:', workflowText);
+      console.log('Workflow gerado:', workflowText);
       
       workflow = JSON.parse(workflowText);
-      console.log('Validating workflow structure');
+      console.log('Validando estrutura do workflow');
       
       validateWorkflow(workflow, platform);
       
@@ -75,11 +75,11 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (error) {
-      console.error('Error processing workflow:', error);
-      throw new Error(`Failed to generate valid workflow JSON: ${error.message}`);
+      console.error('Erro ao processar workflow:', error);
+      throw new Error(`Falha ao gerar JSON válido do workflow: ${error.message}`);
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Erro:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
