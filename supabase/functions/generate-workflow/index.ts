@@ -18,27 +18,43 @@ serve(async (req) => {
       throw new Error('Prompt and platform are required');
     }
 
-    const systemPrompt = `You are an expert automation workflow creator for ${platform}. 
-    Create a workflow that accomplishes the user's goal. 
-    Your response must be a valid JSON object with the following structure:
-    {
-      "name": "workflow name",
-      "description": "brief description",
-      "nodes": [
-        {
-          "id": "unique node id",
-          "type": "node type (trigger, action, etc)",
-          "name": "node name",
-          "parameters": { node specific parameters }
-        }
-      ],
-      "connections": [
-        {
-          "sourceNode": "source node id",
-          "targetNode": "target node id"
-        }
-      ]
-    }`;
+    const systemPrompt = platform === 'n8n' ? 
+      `You are an expert n8n workflow creator. Create a workflow that accomplishes the user's goal.
+      Your response must be a valid n8n workflow JSON object with this exact structure:
+      {
+        "name": "workflow name",
+        "nodes": [
+          {
+            "parameters": {},
+            "name": "node name",
+            "type": "n8n-nodes-base.nodeType",
+            "typeVersion": 1,
+            "position": [x, y],
+            "id": "uuid-style-id"
+          }
+        ],
+        "connections": {
+          "Node Name": {
+            "main": [
+              [
+                {
+                  "node": "Next Node Name",
+                  "type": "main",
+                  "index": 0
+                }
+              ]
+            ]
+          }
+        },
+        "active": true,
+        "settings": {},
+        "tags": [],
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z",
+        "versionId": "uuid-style-id"
+      }` :
+      `You are an expert Make.com workflow creator. Create a workflow that accomplishes the user's goal.
+      Your response must be a valid Make.com workflow JSON object.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -49,8 +65,14 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
+          { 
+            role: 'system', 
+            content: systemPrompt 
+          },
+          { 
+            role: 'user', 
+            content: `Create a workflow for: ${prompt}. Return ONLY the JSON, no explanations or additional text.` 
+          }
         ],
         temperature: 0.7,
       }),
@@ -63,12 +85,25 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const workflowText = data.choices[0].message.content;
+    let workflow = null;
     
-    // Parse the response to ensure it's valid JSON
-    const workflow = JSON.parse(workflowText);
+    try {
+      // Extract the JSON from the response and parse it
+      const workflowText = data.choices[0].message.content.trim();
+      workflow = JSON.parse(workflowText);
+      
+      // Validate n8n specific structure
+      if (platform === 'n8n') {
+        if (!workflow.nodes || !workflow.connections || !Array.isArray(workflow.nodes)) {
+          throw new Error('Invalid n8n workflow structure');
+        }
+      }
+    } catch (parseError) {
+      console.error('Error parsing workflow:', parseError);
+      throw new Error('Failed to generate valid workflow JSON');
+    }
 
-    // Generate a shareable URL (you can implement storage later)
+    // Generate a shareable URL
     const shareableUrl = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(workflow, null, 2))}`;
 
     return new Response(
