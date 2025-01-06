@@ -12,7 +12,7 @@ const pricingPlans = [
   },
   {
     title: "Pro",
-    price: "$29",
+    price: "$12",
     features: ["Unlimited workflows", "Premium templates", "Priority support", "Custom integrations"],
     priceId: "price_pro" // You'll need to replace this with your actual Stripe price ID
   },
