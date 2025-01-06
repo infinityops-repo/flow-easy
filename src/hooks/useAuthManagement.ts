@@ -37,40 +37,43 @@ export const useAuthManagement = () => {
 
   const handleSignOut = async () => {
     try {
-      // Primeiro, obter a sessão atual
-      const { data: { session } } = await supabase.auth.getSession();
+      // First clear all local storage data
+      localStorage.clear();
       
-      if (!session) {
-        // Se não houver sessão, apenas limpar localStorage e redirecionar
-        localStorage.clear();
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Error getting session:', sessionError);
         navigate('/auth');
         return;
       }
 
-      // Tentar fazer logout
-      const { error } = await supabase.auth.signOut({
-        scope: 'local'
-      });
+      if (!session) {
+        // If no session exists, just redirect
+        navigate('/auth');
+        return;
+      }
+
+      // Attempt to sign out
+      const { error } = await supabase.auth.signOut();
 
       if (error) {
         console.error('Error during sign out:', error);
-        // Se o erro for de sessão não encontrada, limpar localStorage
+        // If session not found, just redirect
         if (error.message.includes('session_not_found')) {
-          localStorage.clear();
           navigate('/auth');
           return;
         }
         toast.error('Erro ao realizar logout. Tente novamente.');
       } else {
-        localStorage.clear(); // Garantir que todos os dados locais sejam limpos
         toast.success('Logout realizado com sucesso');
         navigate('/auth');
       }
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Em caso de erro, tentar limpar tudo e redirecionar
+      // In case of any error, clear storage and redirect
       localStorage.clear();
-      toast.error('Erro ao realizar logout. Tente novamente.');
       navigate('/auth');
     }
   };
