@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Menubar,
   MenubarContent,
@@ -19,11 +20,17 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 
 const MainNav = () => {
+  const navigate = useNavigate();
+
+  const handleNavigation = () => {
+    navigate('/');
+  };
+
   return (
     <div className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-background/80 backdrop-blur-lg">
       <div className="flex h-16 items-center px-4 md:px-6 justify-between">
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onClick={handleNavigation} style={{ cursor: 'pointer' }}>
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#9b87f5] to-[#1EAEDB]">
               <GitBranch className="w-5 h-5 text-white" />
             </div>
@@ -35,26 +42,26 @@ const MainNav = () => {
           <div className="hidden md:block">
             <Menubar className="border-none bg-transparent">
               <MenubarMenu>
-                <MenubarTrigger className="font-medium">Templates</MenubarTrigger>
+                <MenubarTrigger className="font-medium" onClick={handleNavigation}>Templates</MenubarTrigger>
                 <MenubarContent>
-                  <MenubarItem>New Template</MenubarItem>
-                  <MenubarItem>Browse All</MenubarItem>
+                  <MenubarItem onClick={handleNavigation}>New Template</MenubarItem>
+                  <MenubarItem onClick={handleNavigation}>Browse All</MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
 
               <MenubarMenu>
-                <MenubarTrigger className="font-medium">News</MenubarTrigger>
+                <MenubarTrigger className="font-medium" onClick={handleNavigation}>News</MenubarTrigger>
                 <MenubarContent>
-                  <MenubarItem>Latest Updates</MenubarItem>
-                  <MenubarItem>Blog</MenubarItem>
+                  <MenubarItem onClick={handleNavigation}>Latest Updates</MenubarItem>
+                  <MenubarItem onClick={handleNavigation}>Blog</MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
 
               <MenubarMenu>
-                <MenubarTrigger className="font-medium">Support</MenubarTrigger>
+                <MenubarTrigger className="font-medium" onClick={handleNavigation}>Support</MenubarTrigger>
                 <MenubarContent>
-                  <MenubarItem>Help Center</MenubarItem>
-                  <MenubarItem>Contact Us</MenubarItem>
+                  <MenubarItem onClick={handleNavigation}>Help Center</MenubarItem>
+                  <MenubarItem onClick={handleNavigation}>Contact Us</MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
             </Menubar>
@@ -71,9 +78,9 @@ const MainNav = () => {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigation}>Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigation}>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigation}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -87,13 +94,13 @@ const MainNav = () => {
               </SheetTrigger>
               <SheetContent side="right">
                 <div className="flex flex-col gap-4 mt-8">
-                  <Button variant="ghost" className="justify-start">Templates</Button>
-                  <Button variant="ghost" className="justify-start">News</Button>
-                  <Button variant="ghost" className="justify-start">Support</Button>
+                  <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Templates</Button>
+                  <Button variant="ghost" className="justify-start" onClick={handleNavigation}>News</Button>
+                  <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Support</Button>
                   <div className="border-t border-white/10 pt-4 mt-4">
-                    <Button variant="ghost" className="justify-start">Profile</Button>
-                    <Button variant="ghost" className="justify-start">Settings</Button>
-                    <Button variant="ghost" className="justify-start text-red-500">Sign out</Button>
+                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Profile</Button>
+                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Settings</Button>
+                    <Button variant="ghost" className="justify-start text-red-500" onClick={handleNavigation}>Sign out</Button>
                   </div>
                 </div>
               </SheetContent>
