@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from 'lucide-react';
 
 const templates = [
-  "Crypto portfolio tracker",
-  "AI image generator",
-  "Music player",
-  "Social media dashboard",
+  "Lead generation workflow",
+  "Email automation flow",
+  "Customer onboarding",
+  "Data sync automation",
 ];
 
 export const QuickAccess = () => {
