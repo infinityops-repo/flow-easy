@@ -1,4 +1,3 @@
-// System prompt builder with specific node instructions
 export const buildSystemPrompt = (platform: string) => {
   if (platform !== 'n8n') {
     return `Você é um especialista em criar workflows no Make.com. Crie um workflow que atenda ao objetivo do usuário.
@@ -35,20 +34,7 @@ export const buildSystemPrompt = (platform: string) => {
        }
      }
   
-  3. Para gatilhos agendados, use "n8n-nodes-base.schedule" com os parâmetros:
-     - mode: string (obrigatório, ex: "timeInterval")
-     - interval: [number, string] (obrigatório para timeInterval, ex: [5, "minutes"])
-
-     Exemplo de nó Schedule:
-     {
-       "type": "n8n-nodes-base.schedule",
-       "parameters": {
-         "mode": "timeInterval",
-         "interval": [5, "minutes"]
-       }
-     }
-
-  4. Para notificações do Discord, use "n8n-nodes-base.discord" com os parâmetros:
+  3. Para notificações do Discord, use "n8n-nodes-base.discord" com os parâmetros:
      - channel: string (obrigatório, ex: "#anuncios")
      - text: string (obrigatório, ex: "Nova mensagem")
      - webhookUrl: string (obrigatório, ex: "https://discord.com/api/webhooks/xxx")
@@ -63,7 +49,7 @@ export const buildSystemPrompt = (platform: string) => {
        }
      }
 
-  5. Para notificações do Telegram, use "n8n-nodes-base.telegram" com os parâmetros:
+  4. Para notificações do Telegram, use "n8n-nodes-base.telegram" com os parâmetros:
      - chatId: string (obrigatório, ex: "123456789")
      - text: string (obrigatório, ex: "Nova mensagem")
      - botToken: string (obrigatório, ex: "1234567890:xxx")
@@ -77,6 +63,8 @@ export const buildSystemPrompt = (platform: string) => {
          "botToken": "1234567890:xxx"
        }
      }
+
+  IMPORTANTE: Inclua APENAS os nós necessários para a automação solicitada. NÃO inclua nós de agendamento (schedule) ou outros nós que não foram especificamente solicitados.
   
   REGRAS DE ESTRUTURA DO WORKFLOW:
   1. Cada nó deve ter um UUID único como id
@@ -87,7 +75,7 @@ export const buildSystemPrompt = (platform: string) => {
   
   ANÁLISE DA SOLICITAÇÃO:
   1. Identifique o objetivo principal (notificação, busca de dados, automação)
-  2. Escolha os nós mais apropriados
+  2. Escolha APENAS os nós necessários para atingir o objetivo
   3. Configure a sequência e conexões dos nós
   4. Inclua todos os parâmetros necessários
   5. Adicione tratamento de erros quando necessário
