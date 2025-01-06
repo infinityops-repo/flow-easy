@@ -62,6 +62,8 @@ serve(async (req) => {
       `You are an expert Make.com workflow creator. Create a workflow that accomplishes the user's goal.
       Your response must be a valid Make.com workflow JSON object.`;
 
+    console.log('Making request to OpenAI with prompt:', prompt);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -69,7 +71,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           { 
             role: 'system', 
@@ -91,12 +93,17 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log('OpenAI response:', data);
+
     let workflow = null;
     
     try {
       // Extract the JSON from the response and parse it
       const workflowText = data.choices[0].message.content.trim();
+      console.log('Workflow text:', workflowText);
+      
       workflow = JSON.parse(workflowText);
+      console.log('Parsed workflow:', workflow);
       
       // Validate n8n specific structure
       if (platform === 'n8n') {
