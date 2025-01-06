@@ -30,14 +30,28 @@ const MainNav = () => {
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M4 15C4 15 5 14 8 14C11 14 13 16 16 16C19 16 20 15 20 15V3C20 3 19 4 16 4C13 4 11 2 8 2C5 2 4 3 4 3V15Z"
+                  d="M6 3V15"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
                 <path
-                  d="M4 22V15"
+                  d="M18 9C18 9 18 3 12 3"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M6 15C6 15 6 21 12 21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M18 15C18 15 18 21 12 21"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
