@@ -36,37 +36,33 @@ export const useAuthManagement = () => {
   }, []);
 
   const handleSignOut = async () => {
+    let shouldRedirect = true;
+
     try {
-      // First check if we have a valid session
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        // If no session exists, just navigate to auth page
-        navigate('/auth');
-        return;
-      }
-
-      // Attempt to sign out
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Error during sign out:', error);
-        // If we get a session_not_found error, clear local storage and redirect
-        if (error.message.includes('session_not_found')) {
-          localStorage.removeItem('supabase.auth.token');
-          navigate('/auth');
-          return;
+      if (session) {
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          console.error('Error during sign out:', error);
+          if (error.message.includes('session_not_found')) {
+            localStorage.removeItem('supabase.auth.token');
+          } else {
+            toast.error('Erro ao realizar logout. Tente novamente.');
+            shouldRedirect = false;
+          }
+        } else {
+          toast.success('Logout realizado com sucesso');
         }
-        toast.error('Erro ao realizar logout. Tente novamente.');
-      } else {
-        toast.success('Logout realizado com sucesso');
-        navigate('/auth');
       }
     } catch (error) {
       console.error('Error during sign out:', error);
       toast.error('Erro ao realizar logout. Tente novamente.');
-      // Ensure navigation happens even if there's an error
-      navigate('/auth');
+    } finally {
+      if (shouldRedirect) {
+        navigate('/auth');
+      }
     }
   };
 
