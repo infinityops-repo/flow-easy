@@ -41,7 +41,7 @@ export const Footer = () => {
         </div>
         <Separator className="my-6" />
         <div className="text-center text-sm text-muted-foreground">
-          <p>© 2024 FlowEasy. All rights reserved.</p>
+          <p>© 2025 FlowEasy. All rights reserved.</p>
         </div>
       </div>
     </footer>
