@@ -11,12 +11,12 @@ const tabs = [
 
 export const NavigationTabs = () => {
   return (
-    <div className="flex gap-4 justify-center max-w-2xl">
+    <div className="flex gap-2 md:gap-4 justify-start md:justify-center px-4 min-w-full overflow-x-auto pb-2">
       {tabs.map(({ icon: Icon, label }) => (
         <Button
           key={label}
           variant="ghost"
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 whitespace-nowrap"
         >
           <Icon className="h-4 w-4" />
           {label}
