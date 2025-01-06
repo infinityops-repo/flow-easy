@@ -9,7 +9,7 @@ export const WorkflowInput = () => {
       <div className="glass-card p-4">
         <Input
           className="w-full bg-background/50 border-0 placeholder:text-muted-foreground mb-3"
-          placeholder="Ask Lovable to create a workflow for my..."
+          placeholder="Ask FlowEasy to create a workflow for my..."
         />
         <div className="flex justify-between items-center">
           <div className="flex gap-2">

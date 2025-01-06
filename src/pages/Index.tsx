@@ -17,7 +17,7 @@ const Index = () => {
             Idea to workflow in seconds.
           </h1>
           <p className="text-lg text-muted-foreground">
-            Lovable is your superhuman workflow automation engineer.
+            FlowEasy is your superhuman workflow automation engineer.
           </p>
         </div>
 
