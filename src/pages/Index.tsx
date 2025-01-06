@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HeartLogo } from '@/components/HeartLogo';
 import { WorkflowInput } from '@/components/WorkflowInput';
 import { QuickAccess } from '@/components/QuickAccess';
@@ -24,7 +24,54 @@ const projectsData = [
   }
 ];
 
+const latestProjects = [
+  {
+    title: "Latest Project 1",
+    image: "/placeholder.svg",
+    editedTime: "1 hour ago",
+    isPrivate: false
+  },
+  // ... more latest projects
+];
+
+const featuredProjects = [
+  {
+    title: "Featured Project 1",
+    image: "/placeholder.svg",
+    editedTime: "2 days ago",
+    isPrivate: false
+  },
+  // ... more featured projects
+];
+
+const templateProjects = [
+  {
+    title: "Template 1",
+    image: "/placeholder.svg",
+    editedTime: "1 week ago",
+    isPrivate: false
+  },
+  // ... more templates
+];
+
 const Index = () => {
+  const [activeTab, setActiveTab] = useState('my-projects');
+
+  const getProjectsForTab = () => {
+    switch (activeTab) {
+      case 'my-projects':
+        return projectsData;
+      case 'latest':
+        return latestProjects;
+      case 'featured':
+        return featuredProjects;
+      case 'templates':
+        return templateProjects;
+      default:
+        return projectsData;
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <MainNav />
@@ -45,10 +92,10 @@ const Index = () => {
           <QuickAccess />
           
           <div className="mt-8 md:mt-16 w-full">
-            <NavigationTabs />
+            <NavigationTabs activeTab={activeTab} onTabChange={setActiveTab} />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 px-4 max-w-7xl mx-auto">
-              {projectsData.map((project, index) => (
+              {getProjectsForTab().map((project, index) => (
                 <ProjectCard
                   key={index}
                   title={project.title}
