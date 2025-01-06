@@ -22,8 +22,32 @@ const MainNav = () => {
       <div className="flex h-16 items-center px-6 justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <span className="text-primary text-2xl">❤</span>
-            <span className="font-semibold">lovable</span>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#9b87f5] to-[#1EAEDB]">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="w-5 h-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2L4 6V18L12 22L20 18V6L12 2Z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M12 22V12M12 12L20 6M12 12L4 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <span className="font-bold text-xl tracking-tight">
+              Flow<span className="text-[#9b87f5]">Easy</span>
+            </span>
           </div>
           
           <Menubar className="border-none bg-transparent">
