@@ -20,23 +20,24 @@ serve(async (req) => {
 
     const systemPrompt = platform === 'n8n' ? 
       `You are an expert n8n workflow creator. Create a workflow that accomplishes the user's goal.
-      Your response must be a valid n8n workflow JSON object with this exact structure, and use the EXACT correct node types:
-      For Telegram, use "n8n-nodes-base.telegram" with proper parameters including "chatId" and "text".
-      For HTTP Request, use "n8n-nodes-base.httpRequest" with proper parameters including "url" and "method".
-      
-      The workflow structure must be:
+      Your response must be a valid n8n workflow JSON object with this exact structure:
       {
-        "name": "workflow name",
+        "name": "string",
         "nodes": [
           {
             "parameters": {
-              // Node specific parameters like url, method for HTTP or chatId, text for Telegram
+              // For Telegram nodes:
+              "chatId": "string",
+              "text": "string"
+              // For HTTP nodes:
+              "url": "string",
+              "method": "string"
             },
-            "name": "node name",
-            "type": "n8n-nodes-base.nodeType",
+            "name": "string",
+            "type": "string", // MUST be "n8n-nodes-base.telegram" for Telegram nodes
             "typeVersion": 1,
-            "position": [x, y],
-            "id": "uuid-style-id"
+            "position": [number, number],
+            "id": "string"
           }
         ],
         "connections": {
@@ -44,7 +45,7 @@ serve(async (req) => {
             "main": [
               [
                 {
-                  "node": "Next Node Name",
+                  "node": "string",
                   "type": "main",
                   "index": 0
                 }
@@ -57,8 +58,15 @@ serve(async (req) => {
         "tags": [],
         "createdAt": "2024-01-01T00:00:00.000Z",
         "updatedAt": "2024-01-01T00:00:00.000Z",
-        "versionId": "uuid-style-id"
-      }` :
+        "versionId": "string"
+      }
+      
+      IMPORTANT RULES:
+      1. For Telegram nodes, ALWAYS use "n8n-nodes-base.telegram" as the type
+      2. For HTTP Request nodes, ALWAYS use "n8n-nodes-base.httpRequest" as the type
+      3. All node IDs must be unique UUIDs
+      4. Position coordinates should be reasonable numbers (e.g., [100, 200])
+      5. Return ONLY the JSON, no explanations` :
       `You are an expert Make.com workflow creator. Create a workflow that accomplishes the user's goal.
       Your response must be a valid Make.com workflow JSON object.`;
 
@@ -79,7 +87,7 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Create a workflow for: ${prompt}. The workflow should use the EXACT correct node types (like n8n-nodes-base.telegram for Telegram). Return ONLY the JSON, no explanations or additional text.` 
+            content: `Create a workflow for: ${prompt}. Return ONLY the JSON, no explanations.` 
           }
         ],
         temperature: 0.7,
@@ -95,6 +103,10 @@ serve(async (req) => {
     const data = await response.json();
     console.log('OpenAI response:', data);
 
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from OpenAI');
+    }
+
     let workflow = null;
     
     try {
@@ -108,17 +120,26 @@ serve(async (req) => {
       // Validate n8n specific structure
       if (platform === 'n8n') {
         if (!workflow.nodes || !workflow.connections || !Array.isArray(workflow.nodes)) {
+          console.error('Invalid workflow structure:', workflow);
           throw new Error('Invalid n8n workflow structure');
         }
 
-        // Validate Telegram node type if present
-        const telegramNode = workflow.nodes.find(node => node.type.includes('telegram'));
-        if (telegramNode && telegramNode.type !== 'n8n-nodes-base.telegram') {
-          throw new Error('Invalid Telegram node type');
-        }
+        // Validate each node
+        workflow.nodes.forEach(node => {
+          if (!node.type || !node.parameters || !node.id || !node.position) {
+            console.error('Invalid node structure:', node);
+            throw new Error('Invalid node structure');
+          }
+
+          // Validate Telegram node type if present
+          if (node.type.includes('telegram') && node.type !== 'n8n-nodes-base.telegram') {
+            console.error('Invalid Telegram node type:', node.type);
+            throw new Error('Invalid Telegram node type');
+          }
+        });
       }
     } catch (parseError) {
-      console.error('Error parsing workflow:', parseError);
+      console.error('Error parsing or validating workflow:', parseError);
       throw new Error('Failed to generate valid workflow JSON');
     }
 
