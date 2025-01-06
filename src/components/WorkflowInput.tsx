@@ -9,10 +9,10 @@ export const WorkflowInput = () => {
 
   return (
     <div className="w-full max-w-2xl px-4">
-      <div className="glass-card p-3 md:p-4 space-y-3">
-        <div className="flex gap-3">
+      <div className="glass-card p-2 sm:p-3 md:p-4 space-y-2 sm:space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger className="w-[140px] bg-background/50 border-0">
+            <SelectTrigger className="w-full sm:w-[140px] bg-background/50 border-0">
               <SelectValue placeholder="Select platform" />
             </SelectTrigger>
             <SelectContent>
