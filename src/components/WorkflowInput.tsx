@@ -8,11 +8,11 @@ export const WorkflowInput = () => {
   const [platform, setPlatform] = useState<string>('n8n');
 
   return (
-    <div className="w-full max-w-2xl px-4">
-      <div className="glass-card p-2 sm:p-3 md:p-4 space-y-2 sm:space-y-3">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+    <div className="w-full max-w-3xl px-4">
+      <div className="glass-card p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger className="w-full sm:w-[140px] bg-background/50 border-0">
+            <SelectTrigger className="w-full sm:w-[180px] bg-background/50 border-0">
               <SelectValue placeholder="Select platform" />
             </SelectTrigger>
             <SelectContent>
@@ -21,20 +21,20 @@ export const WorkflowInput = () => {
             </SelectContent>
           </Select>
           <Input
-            className="w-full bg-background/50 border-0 placeholder:text-muted-foreground text-sm md:text-base"
+            className="w-full bg-background/50 border-0 placeholder:text-muted-foreground text-base md:text-lg h-12"
             placeholder={`Ask FlowEasy to create a ${platform} workflow for my...`}
           />
         </div>
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
-              <Paperclip className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-10 w-10 md:h-12 md:w-12">
+              <Paperclip className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
-              <Share2 className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-10 w-10 md:h-12 md:w-12">
+              <Share2 className="h-5 w-5" />
             </Button>
           </div>
-          <Button className="text-sm md:text-base">Create →</Button>
+          <Button className="text-base md:text-lg px-6 py-2 h-12">Create →</Button>
         </div>
       </div>
     </div>
