@@ -26,15 +26,22 @@ serve(async (req) => {
         "nodes": [
           {
             "parameters": {
+              // For Discord nodes:
+              "channel": "string",
+              "text": "string",
+              "webhookUrl": "string",
+              // For HTTP nodes:
+              "url": "string",
+              "method": "string",
               // For Telegram nodes:
               "chatId": "string",
               "text": "string"
-              // For HTTP nodes:
-              "url": "string",
-              "method": "string"
             },
             "name": "string",
-            "type": "string", // MUST be "n8n-nodes-base.telegram" for Telegram nodes
+            "type": "string", // MUST use exact node types:
+                            // - "n8n-nodes-base.discord" for Discord
+                            // - "n8n-nodes-base.telegram" for Telegram
+                            // - "n8n-nodes-base.httpRequest" for HTTP
             "typeVersion": 1,
             "position": [number, number],
             "id": "string"
@@ -62,11 +69,13 @@ serve(async (req) => {
       }
       
       IMPORTANT RULES:
-      1. For Telegram nodes, ALWAYS use "n8n-nodes-base.telegram" as the type
-      2. For HTTP Request nodes, ALWAYS use "n8n-nodes-base.httpRequest" as the type
-      3. All node IDs must be unique UUIDs
-      4. Position coordinates should be reasonable numbers (e.g., [100, 200])
-      5. Return ONLY the JSON, no explanations` :
+      1. For Discord nodes, you MUST use "n8n-nodes-base.discord" as the type
+      2. For Telegram nodes, you MUST use "n8n-nodes-base.telegram" as the type
+      3. For HTTP Request nodes, you MUST use "n8n-nodes-base.httpRequest" as the type
+      4. All node IDs must be unique UUIDs
+      5. Position coordinates should be reasonable numbers (e.g., [100, 200])
+      6. Return ONLY the JSON, no explanations
+      7. Make sure to use the correct parameters for each node type` :
       `You are an expert Make.com workflow creator. Create a workflow that accomplishes the user's goal.
       Your response must be a valid Make.com workflow JSON object.`;
 
@@ -131,10 +140,22 @@ serve(async (req) => {
             throw new Error('Invalid node structure');
           }
 
+          // Validate Discord node type if present
+          if (node.type.includes('discord') && node.type !== 'n8n-nodes-base.discord') {
+            console.error('Invalid Discord node type:', node.type);
+            throw new Error('Invalid Discord node type');
+          }
+
           // Validate Telegram node type if present
           if (node.type.includes('telegram') && node.type !== 'n8n-nodes-base.telegram') {
             console.error('Invalid Telegram node type:', node.type);
             throw new Error('Invalid Telegram node type');
+          }
+
+          // Validate HTTP Request node type if present
+          if (node.type.includes('http') && node.type !== 'n8n-nodes-base.httpRequest') {
+            console.error('Invalid HTTP Request node type:', node.type);
+            throw new Error('Invalid HTTP Request node type');
           }
         });
       }
