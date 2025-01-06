@@ -11,16 +11,29 @@ const Auth = () => {
   const { toast } = useToast()
 
   useEffect(() => {
+    // Check if user is already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/")
+      }
+    })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN") {
+          toast({
+            title: "Login realizado com sucesso",
+            description: "Bem-vindo de volta!",
+          })
           navigate("/")
+        } else if (event === "SIGNED_OUT") {
+          navigate("/auth")
         }
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [navigate])
+  }, [navigate, toast])
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -61,13 +74,17 @@ const Auth = () => {
                 container: 'w-full',
                 button: 'w-full',
                 anchor: 'text-[#9b87f5] hover:text-[#1EAEDB]',
+                message: 'text-red-500',
               },
             }}
+            providers={[]}
             localization={{
               variables: {
                 sign_in: {
                   email_label: 'Email',
                   password_label: 'Senha',
+                  email_input_placeholder: 'Seu endereço de email',
+                  password_input_placeholder: 'Sua senha',
                   button_label: 'Entrar',
                   loading_button_label: 'Entrando...',
                   social_provider_text: 'Entrar com {{provider}}',
@@ -76,6 +93,8 @@ const Auth = () => {
                 sign_up: {
                   email_label: 'Email',
                   password_label: 'Senha',
+                  email_input_placeholder: 'Seu endereço de email',
+                  password_input_placeholder: 'Escolha uma senha',
                   button_label: 'Criar conta',
                   loading_button_label: 'Criando conta...',
                   social_provider_text: 'Criar conta com {{provider}}',
