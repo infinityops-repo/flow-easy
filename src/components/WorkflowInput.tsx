@@ -21,7 +21,7 @@ export const WorkflowInput = () => {
             </SelectContent>
           </Select>
           <Input
-            className="w-full bg-background/50 border-0 placeholder:text-muted-foreground text-lg md:text-xl h-16 px-6"
+            className="w-full bg-background/50 border-0 placeholder:text-muted-foreground text-lg md:text-xl h-20 px-8"
             placeholder={`Ask FlowEasy to create a ${platform} workflow for my...`}
           />
         </div>
