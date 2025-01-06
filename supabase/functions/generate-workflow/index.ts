@@ -37,7 +37,7 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Create a workflow for: ${prompt}. Return ONLY the JSON workflow object, no markdown formatting or explanations.` 
+            content: `Create a workflow for: ${prompt}. Return ONLY the JSON workflow object.` 
           }
         ],
         temperature: 0.7,
@@ -60,20 +60,14 @@ serve(async (req) => {
     let workflow = null;
     
     try {
-      // Clean up the response by removing any markdown formatting
-      const workflowText = data.choices[0].message.content
-        .replace(/```json\n?/g, '') // Remove ```json
-        .replace(/```\n?/g, '')     // Remove closing ```
-        .trim();
-      
-      console.log('Parsing workflow JSON:', workflowText);
+      const workflowText = data.choices[0].message.content.trim();
+      console.log('Generated workflow:', workflowText);
       
       workflow = JSON.parse(workflowText);
       console.log('Validating workflow structure');
       
       validateWorkflow(workflow, platform);
       
-      // Generate a shareable URL
       const shareableUrl = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(workflow, null, 2))}`;
 
       return new Response(

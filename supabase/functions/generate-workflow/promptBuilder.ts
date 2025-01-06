@@ -14,36 +14,27 @@ export const buildSystemPrompt = (platform: string) => {
      - text: string (required)
      - webhookUrl: string (required)
   
-  2. For Discord notifications, use "n8n-nodes-base.discord" with parameters:
-     - channel: string (required)
-     - text: string (required)
-     - webhookUrl: string (required)
-  
-  3. For HTTP requests, use "n8n-nodes-base.httpRequest" with parameters:
-     - url: string (required)
-     - method: string (required, e.g. "GET", "POST")
+  2. For HTTP requests, use "n8n-nodes-base.httpRequest" with parameters:
+     - url: string (required, for dollar exchange rate use "https://api.exchangerate-api.com/v4/latest/USD")
+     - method: string (required, use "GET" for fetching exchange rates)
+     - authentication: string (optional)
      - headers: object (optional)
   
-  4. For scheduled triggers, use "n8n-nodes-base.schedule" with parameters:
+  3. For scheduled triggers, use "n8n-nodes-base.schedule" with parameters:
      - mode: string (required, e.g. "timeInterval")
      - interval: [number, string] (required for timeInterval, e.g. [5, "minutes"])
-  
-  5. For Telegram messages, use "n8n-nodes-base.telegram" with parameters:
-     - chatId: string (required)
-     - text: string (required)
   
   WORKFLOW STRUCTURE RULES:
   1. Each node must have a unique UUID as id
   2. Position coordinates should be spaced out (e.g. [100, 200], [300, 200])
   3. Connections must link nodes in logical order
   4. All parameters must match the expected type (string, number, array, etc)
-  5. Include proper error handling for HTTP requests
   
-  ANALYZE THE REQUEST CAREFULLY:
-  1. Identify the main purpose (notification, data fetch, automation)
-  2. Choose the most appropriate nodes
-  3. Set up proper node sequence and connections
-  4. Include all required parameters
+  FOR DOLLAR EXCHANGE RATE WORKFLOWS:
+  1. Use HTTP Request node to fetch data from exchange rate API
+  2. Include proper error handling
+  3. Format the message appropriately before sending to Slack
+  4. Use Schedule node for periodic updates if needed
   
-  Return ONLY the valid JSON workflow object, no explanations.`;
+  Return ONLY the valid JSON workflow object, no explanations or markdown formatting.`;
 };
