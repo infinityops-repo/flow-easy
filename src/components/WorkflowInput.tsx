@@ -9,32 +9,32 @@ export const WorkflowInput = () => {
 
   return (
     <div className="w-full max-w-4xl px-4">
-      <div className="glass-card p-6 sm:p-8 md:p-10 space-y-6 sm:space-y-8">
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-          <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger className="w-full sm:w-[180px] bg-background/50 border-0 h-12">
-              <SelectValue placeholder="Select platform" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="n8n">n8n</SelectItem>
-              <SelectItem value="make">Make</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="glass-card p-4 space-y-4">
+        <div className="flex flex-col space-y-4">
           <Input
-            className="w-full bg-background/50 border-0 placeholder:text-muted-foreground text-lg md:text-xl h-12 px-4 resize-y min-h-[3rem] max-h-[12rem]"
+            className="w-full bg-background/80 border-0 placeholder:text-muted-foreground/70 text-base h-12 px-4 resize-y min-h-[3rem] max-h-[12rem] rounded-md"
             placeholder={`Ask FlowEasy to create a ${platform} workflow for my...`}
           />
-        </div>
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-10 w-10 md:h-12 md:w-12">
-              <Paperclip className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10 md:h-12 md:w-12">
-              <Share2 className="h-5 w-5" />
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-background/50">
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Select value={platform} onValueChange={setPlatform}>
+                <SelectTrigger className="w-[120px] bg-background/80 border-0 h-9">
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="n8n">n8n</SelectItem>
+                  <SelectItem value="make">Make</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-background/50">
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button className="h-9 px-4">Create →</Button>
           </div>
-          <Button className="text-base md:text-lg px-6 py-2 h-12">Create →</Button>
         </div>
       </div>
     </div>
