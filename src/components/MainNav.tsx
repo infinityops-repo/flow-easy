@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Menubar,
@@ -24,6 +24,31 @@ import { useToast } from "@/components/ui/use-toast";
 const MainNav = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, username')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            setUserName(profile.full_name || profile.username || 'Usuário');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        setUserName('Usuário');
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const handleNavigation = () => {
     navigate('/');
@@ -95,15 +120,15 @@ const MainNav = () => {
           <div className="hidden md:block">
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-2 outline-none">
-                <span className="font-medium">Michael Moreira</span>
+                <span className="font-medium">{userName}</span>
                 <ChevronDown className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleNavigation}>Profile</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleNavigation}>Settings</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigation}>Perfil</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleNavigation}>Configurações</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>Sair</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -117,13 +142,16 @@ const MainNav = () => {
               </SheetTrigger>
               <SheetContent side="right">
                 <div className="flex flex-col gap-4 mt-8">
+                  <div className="px-2 py-4 border-b border-white/10">
+                    <p className="font-medium">{userName}</p>
+                  </div>
                   <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Templates</Button>
                   <Button variant="ghost" className="justify-start" onClick={handleNavigation}>News</Button>
                   <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Support</Button>
                   <div className="border-t border-white/10 pt-4 mt-4">
-                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Profile</Button>
-                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Settings</Button>
-                    <Button variant="ghost" className="justify-start text-red-500" onClick={handleSignOut}>Sign out</Button>
+                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Perfil</Button>
+                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Configurações</Button>
+                    <Button variant="ghost" className="justify-start text-red-500" onClick={handleSignOut}>Sair</Button>
                   </div>
                 </div>
               </SheetContent>
