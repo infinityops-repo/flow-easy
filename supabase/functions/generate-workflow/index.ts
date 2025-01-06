@@ -37,7 +37,7 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Create a workflow for: ${prompt}. Analyze the request carefully and use the most appropriate nodes. Return ONLY the JSON, no explanations.` 
+            content: `Create a workflow for: ${prompt}. Return ONLY the JSON workflow object, no markdown formatting or explanations.` 
           }
         ],
         temperature: 0.7,
@@ -60,8 +60,13 @@ serve(async (req) => {
     let workflow = null;
     
     try {
-      const workflowText = data.choices[0].message.content.trim();
-      console.log('Parsing workflow JSON');
+      // Clean up the response by removing any markdown formatting
+      const workflowText = data.choices[0].message.content
+        .replace(/```json\n?/g, '') // Remove ```json
+        .replace(/```\n?/g, '')     // Remove closing ```
+        .trim();
+      
+      console.log('Parsing workflow JSON:', workflowText);
       
       workflow = JSON.parse(workflowText);
       console.log('Validating workflow structure');
