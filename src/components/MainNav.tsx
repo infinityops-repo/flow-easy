@@ -1,118 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown, GitBranch, Menu } from "lucide-react";
+import { GitBranch, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuthManagement } from "@/hooks/useAuthManagement";
+import { DesktopNav } from "./navigation/DesktopNav";
+import { UserMenu } from "./navigation/UserMenu";
 
 const MainNav = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [userName, setUserName] = useState<string>("Usuário");
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('full_name, username')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (error) {
-            console.error('Error fetching profile:', error);
-            return;
-          }
-
-          if (profile) {
-            setUserName(profile.full_name || profile.username || 'Usuário');
-          } else {
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert([{ id: session.user.id }]);
-
-            if (insertError) {
-              console.error('Error creating profile:', insertError);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
+  const { userName, handleSignOut } = useAuthManagement();
 
   const handleNavigation = () => {
     navigate('/');
-  };
-
-  const handleSignOut = async () => {
-    try {
-      // First check if we have a valid session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        navigate('/auth');
-        return;
-      }
-
-      if (!session) {
-        // If no session exists, just redirect to auth page
-        navigate('/auth');
-        return;
-      }
-
-      // Now we know we have a valid session, try to sign out
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Error signing out:', error);
-        if (error.message?.includes('session_not_found')) {
-          // If session not found, just redirect to auth
-          navigate('/auth');
-          return;
-        }
-        throw error;
-      }
-      
-      toast({
-        title: "Logout realizado com sucesso",
-        description: "Você foi desconectado da sua conta",
-      });
-      
-      navigate('/auth');
-    } catch (error) {
-      console.error('Error during sign out:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao realizar logout",
-        description: "Ocorreu um erro ao tentar desconectar da sua conta",
-      });
-      
-      // Force navigation to auth page if we get any error
-      navigate('/auth');
-    }
   };
 
   return (
@@ -129,49 +29,17 @@ const MainNav = () => {
           </div>
           
           <div className="hidden md:block">
-            <Menubar className="border-none bg-transparent">
-              <MenubarMenu>
-                <MenubarTrigger className="font-medium" onClick={handleNavigation}>Templates</MenubarTrigger>
-                <MenubarContent>
-                  <MenubarItem onClick={handleNavigation}>New Template</MenubarItem>
-                  <MenubarItem onClick={handleNavigation}>Browse All</MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-
-              <MenubarMenu>
-                <MenubarTrigger className="font-medium" onClick={handleNavigation}>News</MenubarTrigger>
-                <MenubarContent>
-                  <MenubarItem onClick={handleNavigation}>Latest Updates</MenubarItem>
-                  <MenubarItem onClick={handleNavigation}>Blog</MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-
-              <MenubarMenu>
-                <MenubarTrigger className="font-medium" onClick={handleNavigation}>Support</MenubarTrigger>
-                <MenubarContent>
-                  <MenubarItem onClick={handleNavigation}>Help Center</MenubarItem>
-                  <MenubarItem onClick={handleNavigation}>Contact Us</MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-            </Menubar>
+            <DesktopNav onNavigate={handleNavigation} />
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="hidden md:block">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-2 outline-none">
-                <span className="font-medium">{userName}</span>
-                <ChevronDown className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleNavigation}>Perfil</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleNavigation}>Configurações</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSignOut}>Sair</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserMenu 
+              userName={userName}
+              onNavigate={handleNavigation}
+              onSignOut={handleSignOut}
+            />
           </div>
 
           <div className="md:hidden">
