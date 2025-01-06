@@ -18,12 +18,35 @@ import {
 import { ChevronDown, GitBranch, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const MainNav = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleNavigation = () => {
     navigate('/');
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Logout realizado com sucesso",
+        description: "Você foi desconectado da sua conta",
+      });
+      
+      navigate('/auth');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao realizar logout",
+        description: "Ocorreu um erro ao tentar desconectar da sua conta",
+      });
+    }
   };
 
   return (
@@ -80,7 +103,7 @@ const MainNav = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleNavigation}>Profile</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleNavigation}>Settings</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleNavigation}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -100,7 +123,7 @@ const MainNav = () => {
                   <div className="border-t border-white/10 pt-4 mt-4">
                     <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Profile</Button>
                     <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Settings</Button>
-                    <Button variant="ghost" className="justify-start text-red-500" onClick={handleNavigation}>Sign out</Button>
+                    <Button variant="ghost" className="justify-start text-red-500" onClick={handleSignOut}>Sign out</Button>
                   </div>
                 </div>
               </SheetContent>
