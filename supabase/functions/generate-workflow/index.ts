@@ -20,12 +20,18 @@ serve(async (req) => {
 
     const systemPrompt = platform === 'n8n' ? 
       `You are an expert n8n workflow creator. Create a workflow that accomplishes the user's goal.
-      Your response must be a valid n8n workflow JSON object with this exact structure:
+      Your response must be a valid n8n workflow JSON object with this exact structure, and use the EXACT correct node types:
+      For Telegram, use "n8n-nodes-base.telegram" with proper parameters including "chatId" and "text".
+      For HTTP Request, use "n8n-nodes-base.httpRequest" with proper parameters including "url" and "method".
+      
+      The workflow structure must be:
       {
         "name": "workflow name",
         "nodes": [
           {
-            "parameters": {},
+            "parameters": {
+              // Node specific parameters like url, method for HTTP or chatId, text for Telegram
+            },
             "name": "node name",
             "type": "n8n-nodes-base.nodeType",
             "typeVersion": 1,
@@ -63,7 +69,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           { 
             role: 'system', 
@@ -71,7 +77,7 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Create a workflow for: ${prompt}. Return ONLY the JSON, no explanations or additional text.` 
+            content: `Create a workflow for: ${prompt}. The workflow should use the EXACT correct node types (like n8n-nodes-base.telegram for Telegram). Return ONLY the JSON, no explanations or additional text.` 
           }
         ],
         temperature: 0.7,
@@ -96,6 +102,12 @@ serve(async (req) => {
       if (platform === 'n8n') {
         if (!workflow.nodes || !workflow.connections || !Array.isArray(workflow.nodes)) {
           throw new Error('Invalid n8n workflow structure');
+        }
+
+        // Validate Telegram node type if present
+        const telegramNode = workflow.nodes.find(node => node.type.includes('telegram'));
+        if (telegramNode && telegramNode.type !== 'n8n-nodes-base.telegram') {
+          throw new Error('Invalid Telegram node type');
         }
       }
     } catch (parseError) {
