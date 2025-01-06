@@ -2,7 +2,9 @@
 export const buildSystemPrompt = (platform: string) => {
   if (platform !== 'n8n') {
     return `Você é um especialista em criar workflows no Make.com. Crie um workflow que atenda ao objetivo do usuário.
-    Sua resposta deve ser um objeto JSON válido para o Make.com.`;
+    Sua resposta deve ser um objeto JSON válido para o Make.com.
+    
+    Certifique-se de incluir todos os parâmetros necessários para cada nó.`;
   }
 
   return `Você é um especialista em criar workflows no n8n. Crie um workflow que atenda ao objetivo do usuário.
@@ -10,30 +12,71 @@ export const buildSystemPrompt = (platform: string) => {
   
   REGRAS IMPORTANTES PARA OS TIPOS DE NÓS:
   1. Para notificações do Slack, use "n8n-nodes-base.slack" com os parâmetros:
-     - channel: string (obrigatório)
-     - text: string (obrigatório)
-     - webhookUrl: string (obrigatório)
+     - channel: string (obrigatório, ex: "#general")
+     - text: string (obrigatório, ex: "Nova mensagem")
+     - webhookUrl: string (obrigatório, ex: "https://hooks.slack.com/services/xxx")
   
   2. Para requisições HTTP, use "n8n-nodes-base.httpRequest" com os parâmetros:
-     - url: string (obrigatório)
-     - method: string (obrigatório, ex: "GET", "POST", "PUT", "DELETE")
-     - authentication: string (opcional)
-     - headers: object (opcional)
-     - body: object (opcional para POST/PUT)
+     - url: string (obrigatório, ex: "https://api.exemplo.com/dados")
+     - method: string (obrigatório, deve ser "GET", "POST", "PUT" ou "DELETE")
+     - authentication: string (opcional, ex: "basicAuth")
+     - headers: object (opcional, ex: {"Content-Type": "application/json"})
+     - body: object (opcional para POST/PUT, ex: {"chave": "valor"})
+
+     Exemplo de nó HTTP:
+     {
+       "type": "n8n-nodes-base.httpRequest",
+       "parameters": {
+         "url": "https://api.exemplo.com/dados",
+         "method": "GET",
+         "headers": {
+           "Content-Type": "application/json"
+         }
+       }
+     }
   
   3. Para gatilhos agendados, use "n8n-nodes-base.schedule" com os parâmetros:
      - mode: string (obrigatório, ex: "timeInterval")
      - interval: [number, string] (obrigatório para timeInterval, ex: [5, "minutes"])
 
+     Exemplo de nó Schedule:
+     {
+       "type": "n8n-nodes-base.schedule",
+       "parameters": {
+         "mode": "timeInterval",
+         "interval": [5, "minutes"]
+       }
+     }
+
   4. Para notificações do Discord, use "n8n-nodes-base.discord" com os parâmetros:
-     - channel: string (obrigatório)
-     - text: string (obrigatório)
-     - webhookUrl: string (obrigatório)
+     - channel: string (obrigatório, ex: "#anuncios")
+     - text: string (obrigatório, ex: "Nova mensagem")
+     - webhookUrl: string (obrigatório, ex: "https://discord.com/api/webhooks/xxx")
+
+     Exemplo de nó Discord:
+     {
+       "type": "n8n-nodes-base.discord",
+       "parameters": {
+         "channel": "#anuncios",
+         "text": "Nova mensagem",
+         "webhookUrl": "https://discord.com/api/webhooks/xxx"
+       }
+     }
 
   5. Para notificações do Telegram, use "n8n-nodes-base.telegram" com os parâmetros:
-     - chatId: string (obrigatório)
-     - text: string (obrigatório)
-     - botToken: string (obrigatório)
+     - chatId: string (obrigatório, ex: "123456789")
+     - text: string (obrigatório, ex: "Nova mensagem")
+     - botToken: string (obrigatório, ex: "1234567890:xxx")
+
+     Exemplo de nó Telegram:
+     {
+       "type": "n8n-nodes-base.telegram",
+       "parameters": {
+         "chatId": "123456789",
+         "text": "Nova mensagem",
+         "botToken": "1234567890:xxx"
+       }
+     }
   
   REGRAS DE ESTRUTURA DO WORKFLOW:
   1. Cada nó deve ter um UUID único como id
