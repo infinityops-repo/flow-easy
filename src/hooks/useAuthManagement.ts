@@ -36,33 +36,27 @@ export const useAuthManagement = () => {
   }, []);
 
   const handleSignOut = async () => {
-    let shouldRedirect = true;
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // First clear any existing session data from localStorage
+      localStorage.removeItem('supabase.auth.token');
       
-      if (session) {
-        const { error } = await supabase.auth.signOut();
-        
-        if (error) {
-          console.error('Error during sign out:', error);
-          if (error.message.includes('session_not_found')) {
-            localStorage.removeItem('supabase.auth.token');
-          } else {
-            toast.error('Erro ao realizar logout. Tente novamente.');
-            shouldRedirect = false;
-          }
-        } else {
-          toast.success('Logout realizado com sucesso');
-        }
+      // Attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut({
+        scope: 'local'  // Only clear the current tab's session
+      });
+      
+      if (error) {
+        console.error('Error during sign out:', error);
+        toast.error('Erro ao realizar logout. Tente novamente.');
+      } else {
+        toast.success('Logout realizado com sucesso');
       }
     } catch (error) {
       console.error('Error during sign out:', error);
       toast.error('Erro ao realizar logout. Tente novamente.');
     } finally {
-      if (shouldRedirect) {
-        navigate('/auth');
-      }
+      // Always navigate to auth page after attempting logout
+      navigate('/auth');
     }
   };
 
