@@ -24,26 +24,39 @@ import { useToast } from "@/components/ui/use-toast";
 const MainNav = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userName, setUserName] = useState<string>("");
+  const [userName, setUserName] = useState<string>("Usuário");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data: profile } = await supabase
+          const { data: profile, error } = await supabase
             .from('profiles')
             .select('full_name, username')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle(); // Changed from single() to maybeSingle()
+
+          if (error) {
+            console.error('Error fetching profile:', error);
+            return;
+          }
 
           if (profile) {
             setUserName(profile.full_name || profile.username || 'Usuário');
+          } else {
+            // If no profile exists, create one
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([{ id: session.user.id }]);
+
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+            }
           }
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
-        setUserName('Usuário');
       }
     };
 
@@ -56,6 +69,15 @@ const MainNav = () => {
 
   const handleSignOut = async () => {
     try {
+      // First check if we have a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // If no session exists, just redirect to auth page
+        navigate('/auth');
+        return;
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -66,11 +88,17 @@ const MainNav = () => {
       
       navigate('/auth');
     } catch (error) {
+      console.error('Error signing out:', error);
       toast({
         variant: "destructive",
         title: "Erro ao realizar logout",
         description: "Ocorreu um erro ao tentar desconectar da sua conta",
       });
+      
+      // Force navigation to auth page if we get a session error
+      if (error.message?.includes('session_not_found')) {
+        navigate('/auth');
+      }
     }
   };
 
