@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 export const useAuthManagement = () => {
   const [userName, setUserName] = useState<string>("Usuário");
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -26,14 +25,6 @@ export const useAuthManagement = () => {
 
           if (profile) {
             setUserName(profile.full_name || profile.username || 'Usuário');
-          } else {
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert([{ id: session.user.id }]);
-
-            if (insertError) {
-              console.error('Error creating profile:', insertError);
-            }
           }
         }
       } catch (error) {
@@ -46,20 +37,35 @@ export const useAuthManagement = () => {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logout realizado com sucesso",
-        description: "Você foi desconectado da sua conta",
-      });
+      // First check if we have a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // If no session exists, just navigate to auth page
+        navigate('/auth');
+        return;
+      }
+
+      // Attempt to sign out
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error during sign out:', error);
+        // If we get a session_not_found error, clear local storage and redirect
+        if (error.message.includes('session_not_found')) {
+          localStorage.removeItem('supabase.auth.token');
+          navigate('/auth');
+          return;
+        }
+        toast.error('Erro ao realizar logout. Tente novamente.');
+      } else {
+        toast.success('Logout realizado com sucesso');
+        navigate('/auth');
+      }
     } catch (error) {
       console.error('Error during sign out:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao realizar logout",
-        description: "Ocorreu um erro ao tentar desconectar da sua conta",
-      });
-    } finally {
-      // Always navigate to auth page after sign out attempt
+      toast.error('Erro ao realizar logout. Tente novamente.');
+      // Ensure navigation happens even if there's an error
       navigate('/auth');
     }
   };
