@@ -82,9 +82,15 @@ serve(async (req) => {
       
       // Remove os blocos de código markdown se existirem
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
-      workflow = jsonMatch ? jsonMatch[1].trim() : content;
+      const rawWorkflow = jsonMatch ? jsonMatch[1].trim() : content;
+
+      // Limpa o JSON removendo caracteres de escape
+      workflow = rawWorkflow
+        .replace(/\\n/g, '')
+        .replace(/\\"/g, '"')
+        .replace(/\s+/g, ' ')
+        .trim();
       
-      // Retorna o workflow como string, deixando o parsing para o cliente
       return new Response(
         JSON.stringify({ 
           workflow,
