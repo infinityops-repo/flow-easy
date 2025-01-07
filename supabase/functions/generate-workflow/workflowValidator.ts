@@ -3,7 +3,6 @@ export const validateMakeWorkflow = (workflow: any) => {
     throw new Error('Workflow inválido: deve ser um objeto');
   }
 
-  // Validação básica para Make (Integromat)
   if (!workflow.name || typeof workflow.name !== 'string') {
     throw new Error('Workflow Make inválido: nome é obrigatório');
   }
@@ -18,7 +17,6 @@ export const validateN8nWorkflow = (workflow: any) => {
     throw new Error('Workflow inválido: deve ser um objeto');
   }
 
-  // Validação básica para n8n
   if (!workflow.nodes || !Array.isArray(workflow.nodes)) {
     throw new Error('Workflow n8n inválido: nodes deve ser um array');
   }
