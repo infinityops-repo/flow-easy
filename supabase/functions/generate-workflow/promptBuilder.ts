@@ -88,127 +88,92 @@ MODULE SELECTION EXPERTISE:
 Create a valid Make scenario that includes:
 
 {
-  "name": "Descriptive Scenario Name",
+  "name": "Currency Rate Updates",
   "modules": [
     {
-      "name": "Meaningful Module Name",
-      "type": "app:module-type",
+      "name": "HTTP Request",
+      "type": "http:make-request",
       "parameters": {
-        // All necessary parameters with proper typing
-      },
-      "mapping": {
-        // Data mapping between modules
+        "url": "https://api.exchangerate-api.com/v4/latest/USD",
+        "method": "GET",
+        "timeout": "30000",
+        "parseResponse": true,
+        "description": "GET: https://api.exchangerate..."
       },
       "metadata": {
-        "notes": "Purpose and configuration details",
+        "notes": "Fetches current USD exchange rate",
         "retries": {
-          "enabled": true/false,
-          "maxAttempts": number,
-          "delay": number
+          "enabled": true,
+          "maxAttempts": 3,
+          "delay": 1000
         }
       }
-    }
-  ],
-  "connections": [
+    },
     {
-      "from": "Source Module",
-      "to": "Target Module",
-      "type": "direct/filtered/router"
-    }
-  ],
-  "settings": {
-    "timezone": "UTC",
-    "schedule": "*/5 * * * *",
-    "maxExecutionTime": 300,
-    "retryAttempts": 3,
-    "retryInterval": 60,
-    "errorNotification": {
-      "enabled": true,
-      "email": "alerts@company.com"
-    }
-  }
-}
-
-IMPORTANT RULES:
-
-1. Module Selection:
-   - Choose the most appropriate module for each task
-   - Use native app modules over HTTP requests
-   - Use specialized modules over generic ones
-   - Consider rate limits and API quotas
-
-2. Data Flow:
-   - Ensure proper data mapping between modules
-   - Transform data to match target module requirements
-   - Handle arrays and nested data properly
-   - Consider data type conversions
-
-3. Error Handling:
-   - Add error handling for critical modules
-   - Configure retry mechanisms appropriately
-   - Use filters for data validation
-   - Add error notification routes
-
-4. Security:
-   - Use connection credentials properly
-   - Never hardcode sensitive data
-   - Follow least privilege principle
-   - Add proper authentication
-
-5. Performance:
-   - Optimize module order for performance
-   - Use batch operations when possible
-   - Configure proper timeouts
-   - Consider data limits
-
-6. Maintenance:
-   - Add descriptive module names
-   - Include helpful notes
-   - Structure the scenario logically
-   - Consider monitoring needs
-
-Example response format:
-{
-  "name": "Professional Data Integration Flow",
-  "modules": [
-    {
-      "name": "Watch for New Data",
-      "type": "webhook:custom",
+      "name": "Format Message",
+      "type": "tools:formatter",
       "parameters": {
-        "method": "POST",
-        "url": "/api/newdata"
+        "template": "Current USD rate: {{1.data.rates.BRL}}",
+        "description": "Format currency message"
       },
       "metadata": {
-        "notes": "Entry point for new data",
+        "notes": "Formats the message with current rate",
         "retries": {
           "enabled": false
         }
       }
     },
     {
-      "name": "Validate Input",
-      "type": "flow:router",
+      "name": "Send to Discord",
+      "type": "discord:create-message",
       "parameters": {
-        "conditions": [
-          {
-            "field": "data.status",
-            "operation": "equals",
-            "value": "valid"
-          }
-        ]
+        "connection": "Discord Bot",
+        "channel": "updates",
+        "message": "{{2.text}}",
+        "description": "create: channel"
       },
       "metadata": {
-        "notes": "Ensures data meets requirements",
+        "notes": "Sends message to Discord channel",
         "retries": {
-          "enabled": false
+          "enabled": true,
+          "maxAttempts": 3,
+          "delay": 1000
+        }
+      }
+    },
+    {
+      "name": "Send to Telegram",
+      "type": "telegram:send-message",
+      "parameters": {
+        "connection": "Telegram Bot",
+        "chatId": "{{config.telegramChatId}}",
+        "message": "{{2.text}}",
+        "description": "sendMessage: message"
+      },
+      "metadata": {
+        "notes": "Sends message to Telegram chat",
+        "retries": {
+          "enabled": true,
+          "maxAttempts": 3,
+          "delay": 1000
         }
       }
     }
   ],
   "connections": [
     {
-      "from": "Watch for New Data",
-      "to": "Validate Input",
+      "from": "HTTP Request",
+      "to": "Format Message",
+      "type": "direct"
+    },
+    {
+      "from": "Format Message",
+      "to": "Send to Discord",
+      "type": "direct"
+    },
+    {
+      "from": "Format Message",
+      "to": "Send to Telegram",
       "type": "direct"
     }
   ],
@@ -224,8 +189,15 @@ Example response format:
   }
 }
 
-IMPORTANT: In the actual implementation, use double curly braces for mappings, like {{1.data}} instead of {1.data}.
-The example above uses single curly braces only to avoid syntax issues in the template string.
+IMPORTANT RULES FOR CHAT/MESSAGING MODULES:
+1. ALWAYS include proper connection configuration
+2. ALWAYS specify the connection name
+3. ALWAYS use proper data mapping with module references
+4. NEVER send raw API responses without formatting
+5. Connect ALL messaging modules to the same data source
+6. Include proper error handling for API calls
+7. Add retry mechanisms for network operations
+8. Use consistent message formatting across platforms
 
 Respond ONLY with the JSON scenario, no explanations.`;
 };
@@ -394,43 +366,129 @@ Example response format:
 {
   "nodes": [
     {
-      "name": "When clicking 'execute'",
-      "type": "n8n-nodes-base.manualTrigger",
-      "parameters": {},
-      "position": [250, 300],
-      "notes": "Workflow trigger"
-    },
-    {
       "name": "HTTP Request",
       "type": "n8n-nodes-base.httpRequest",
       "parameters": {
-        "url": "https://api.example.com/data",
+        "url": "https://api.exchangerate-api.com/v4/latest/USD",
         "method": "GET",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "authentication": "none",
+        "options": {}
       },
-      "position": [450, 300],
-      "notes": "Fetches data from API",
+      "position": [250, 300],
+      "notes": "Fetches current USD exchange rate",
       "continueOnFail": false,
       "retryOnFail": {
         "enabled": true,
         "maxTries": 3,
         "waitBetweenTries": 1000
       }
+    },
+    {
+      "name": "Set Message",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "=Current USD rate: {{ $json.rates.BRL }}"
+            }
+          ]
+        }
+      },
+      "position": [450, 300],
+      "notes": "Formats the message with current rate"
+    },
+    {
+      "name": "Discord",
+      "type": "n8n-nodes-base.discord",
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "channel": "updates",
+        "message": "={{ $node[\"Set Message\"].json[\"message\"] }}",
+        "options": {
+          "attachments": [],
+          "embeds": []
+        }
+      },
+      "position": [650, 200],
+      "notes": "Sends message to Discord channel",
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "1",
+          "name": "Discord account"
+        }
+      }
+    },
+    {
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "parameters": {
+        "authentication": "chatId",
+        "chatId": "={{ $credentials.telegramApi.chatId }}",
+        "text": "={{ $node[\"Set Message\"].json[\"message\"] }}",
+        "additionalFields": {}
+      },
+      "position": [650, 400],
+      "notes": "Sends message to Telegram chat",
+      "credentials": {
+        "telegramApi": {
+          "id": "2",
+          "name": "Telegram account"
+        }
+      }
     }
   ],
   "connections": {
-    "When clicking 'execute'": {
-      "main": [[{"node": "HTTP Request", "type": "main", "index": 0}]]
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Message": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
     "saveExecutionProgress": true,
     "saveManualExecutions": true,
-    "callerPolicy": "workflowCredentialUser",
-    "timezone": "UTC"
+    "timezone": "default",
+    "errorWorkflow": "none"
   }
 }
 
-Respond ONLY with the JSON workflow, no explanations. Ensure all node types, parameters, and connections are valid for the current n8n version.`;
+IMPORTANT RULES FOR CHAT/MESSAGING NODES:
+1. ALWAYS include proper authentication in parameters
+2. ALWAYS include credentials configuration
+3. ALWAYS use proper data mapping with node references
+4. NEVER send raw API responses without formatting
+5. Connect ALL messaging nodes to the same data source
+6. Include proper error handling for API calls
+7. Add retry mechanisms for network operations
+8. Use consistent message formatting across platforms
+
+Respond ONLY with the JSON workflow, no explanations.`;
 };

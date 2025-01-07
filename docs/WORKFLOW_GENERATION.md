@@ -121,29 +121,212 @@ Example n8n workflow structure:
 
 ## Best Practices
 
-### 1. Module Selection
+### 1. Module/Node Selection
 - Use native integrations when available
 - Choose specialized modules over generic ones
 - Consider rate limits and quotas
 - Implement proper authentication
+- Match module types to task requirements
+- Consider platform-specific features
 
-### 2. Error Handling
-- Configure retry mechanisms
-- Add error notifications
-- Implement validation
+### 2. Data Flow & Transformation
+- Always include proper data mapping between nodes
+- Format messages before sending to chat platforms
+- Handle API responses appropriately
+- Use type-specific formatters (JSON, Text, etc.)
+- Ensure consistent data structure
+- Validate data before processing
+
+### 3. Error Handling & Reliability
+- Configure retry mechanisms for network operations
+- Add error notifications for critical failures
+- Implement validation filters
 - Use try-catch patterns
+- Set appropriate timeouts
+- Monitor execution status
 
-### 3. Performance
-- Optimize data flow
-- Use batch operations
-- Configure timeouts
+### 4. Security & Authentication
+- Use credential management
+- Configure proper connection settings
+- Never hardcode sensitive data
+- Follow least privilege principle
+- Validate inputs
+- Secure API endpoints
+
+### 5. Performance & Optimization
+- Optimize data flow sequence
+- Use batch operations when possible
+- Configure appropriate timeouts
+- Consider rate limiting
+- Optimize resource usage
 - Monitor execution time
 
-### 4. Security
-- Use credential management
-- Avoid hardcoded secrets
-- Implement least privilege
-- Validate inputs
+### 6. Messaging & Communication
+- Include proper connection configuration
+- Specify connection names explicitly
+- Use consistent message formatting
+- Handle platform-specific features
+- Configure proper retries
+- Add error notifications
+
+## Example Workflows
+
+### Make (Integromat) Example
+
+```json
+{
+  "name": "Currency Rate Updates",
+  "modules": [
+    {
+      "name": "HTTP Request",
+      "type": "http:make-request",
+      "parameters": {
+        "url": "https://api.exchangerate-api.com/v4/latest/USD",
+        "method": "GET",
+        "timeout": "30000",
+        "parseResponse": true
+      },
+      "metadata": {
+        "notes": "Fetches current USD exchange rate",
+        "retries": {
+          "enabled": true,
+          "maxAttempts": 3,
+          "delay": 1000
+        }
+      }
+    },
+    {
+      "name": "Format Message",
+      "type": "tools:formatter",
+      "parameters": {
+        "template": "Current USD rate: {{1.data.rates.BRL}}"
+      }
+    },
+    {
+      "name": "Send to Discord",
+      "type": "discord:create-message",
+      "parameters": {
+        "connection": "Discord Bot",
+        "channel": "updates",
+        "message": "{{2.text}}"
+      }
+    },
+    {
+      "name": "Send to Telegram",
+      "type": "telegram:send-message",
+      "parameters": {
+        "connection": "Telegram Bot",
+        "chatId": "{{config.telegramChatId}}",
+        "message": "{{2.text}}"
+      }
+    }
+  ]
+}
+```
+
+### n8n Example
+
+```json
+{
+  "nodes": [
+    {
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.exchangerate-api.com/v4/latest/USD",
+        "method": "GET",
+        "authentication": "none"
+      },
+      "position": [250, 300]
+    },
+    {
+      "name": "Set Message",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "=Current USD rate: {{ $json.rates.BRL }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Discord",
+      "type": "n8n-nodes-base.discord",
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "channel": "updates",
+        "message": "={{ $node[\"Set Message\"].json[\"message\"] }}"
+      },
+      "credentials": {
+        "discordOAuth2Api": {
+          "id": "1",
+          "name": "Discord account"
+        }
+      }
+    },
+    {
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "parameters": {
+        "authentication": "chatId",
+        "chatId": "={{ $credentials.telegramApi.chatId }}",
+        "text": "={{ $node[\"Set Message\"].json[\"message\"] }}"
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "2",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ]
+}
+```
+
+## Platform-Specific Guidelines
+
+### Make (Integromat)
+1. **Module Configuration**
+   - Use proper module types (e.g., `http:make-request`, `discord:create-message`)
+   - Configure timeouts and retries
+   - Set up error handling
+   - Use proper data mapping
+
+2. **Data Mapping**
+   - Use double curly braces for mappings (`{{1.data}}`)
+   - Reference modules by number
+   - Include proper error handling
+   - Format data appropriately
+
+3. **Connections**
+   - Specify connection names
+   - Configure authentication
+   - Set up webhooks properly
+   - Handle rate limits
+
+### n8n
+1. **Node Configuration**
+   - Use proper node types (e.g., `n8n-nodes-base.httpRequest`)
+   - Configure credentials
+   - Set up error handling
+   - Position nodes logically
+
+2. **Data Mapping**
+   - Use expression syntax (`={{ $node["NodeName"].json["field"] }}`)
+   - Reference nodes by name
+   - Include proper error handling
+   - Format data appropriately
+
+3. **Credentials**
+   - Configure authentication
+   - Use credential store
+   - Handle API tokens
+   - Secure sensitive data
 
 ## Usage Example
 
