@@ -83,69 +83,72 @@ serve(async (req) => {
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const jsonContent = jsonMatch ? jsonMatch[1].trim() : content;
 
-      // Substitui temporariamente as expressões de interpolação
-      const PLACEHOLDER = "__EXPRESSION__";
-      const expressions: string[] = [];
-      
-      // Primeiro, encontra todas as expressões de interpolação
-      const interpolationRegex = /=\{\{[^}]+\}\}/g;
-      const matches = jsonContent.match(interpolationRegex) || [];
-      
-      // Cria um mapa de substituições
-      const replacements = new Map<string, string>();
-      matches.forEach((match, index) => {
-        const placeholder = `"${PLACEHOLDER}${index}"`;
-        replacements.set(match, placeholder);
-      });
-
-      // Aplica as substituições em ordem
-      let processedContent = jsonContent;
-      replacements.forEach((placeholder, expression) => {
-        processedContent = processedContent.replace(expression, placeholder);
-      });
-
+      // Primeiro, vamos tentar parsear diretamente
       try {
-        // Primeira tentativa: parse direto
-        workflow = JSON.parse(processedContent);
-      } catch (firstError) {
-        console.error('First parse attempt failed:', firstError);
+        workflow = JSON.parse(jsonContent);
+      } catch (parseError) {
+        console.log('Direct parse failed, trying with preprocessing');
+        
+        // Se falhar, vamos pré-processar o conteúdo
+        const PLACEHOLDER = "__NODE_REF__";
+        const nodeRefs = new Map<string, string>();
+        let refCount = 0;
+
+        // Função para substituir referências a nós
+        const replaceNodeRefs = (match: string, p1: string) => {
+          const placeholder = `${PLACEHOLDER}${refCount}`;
+          nodeRefs.set(placeholder, match);
+          refCount++;
+          return `"${placeholder}"`;
+        };
+
+        // Substitui referências a nós e expressões de interpolação
+        let processedContent = jsonContent
+          // Substitui referências a nós com aspas duplas
+          .replace(/=\{\{\s*\$node\["([^"]+)"\][^}]+\}\}/g, replaceNodeRefs)
+          // Substitui referências a credenciais
+          .replace(/=\{\{\s*\$credentials[^}]+\}\}/g, replaceNodeRefs)
+          // Substitui outras expressões de interpolação
+          .replace(/=\{\{[^}]+\}\}/g, replaceNodeRefs);
+
+        console.log('Processed content:', processedContent);
+
         try {
-          // Segunda tentativa: remove caracteres de controle
-          const cleanContent = processedContent.replace(/[\u0000-\u001F]+/g, '');
-          workflow = JSON.parse(cleanContent);
+          workflow = JSON.parse(processedContent);
         } catch (secondError) {
           console.error('Second parse attempt failed:', secondError);
-          // Terceira tentativa: remove quebras de linha e espaços extras
+          // Se ainda falhar, tenta remover quebras de linha
           const minifiedContent = processedContent.replace(/\s+/g, ' ').trim();
           workflow = JSON.parse(minifiedContent);
         }
-      }
 
-      // Restaura as expressões de interpolação
-      const restoreExpressions = (obj: any): any => {
-        if (typeof obj === 'string') {
-          const match = obj.match(new RegExp(`^"?${PLACEHOLDER}(\\d+)"?$`));
-          if (match) {
-            const index = parseInt(match[1]);
-            return matches[index];
+        // Restaura as referências originais
+        const restoreRefs = (obj: any): any => {
+          if (typeof obj === 'string') {
+            for (const [placeholder, original] of nodeRefs.entries()) {
+              if (obj === placeholder || obj === `"${placeholder}"`) {
+                return original;
+              }
+            }
+            return obj;
+          }
+          if (Array.isArray(obj)) {
+            return obj.map(item => restoreRefs(item));
+          }
+          if (obj && typeof obj === 'object') {
+            const result: any = {};
+            for (const key in obj) {
+              result[key] = restoreRefs(obj[key]);
+            }
+            return result;
           }
           return obj;
-        }
-        if (Array.isArray(obj)) {
-          return obj.map(item => restoreExpressions(item));
-        }
-        if (obj && typeof obj === 'object') {
-          const result: any = {};
-          for (const key in obj) {
-            result[key] = restoreExpressions(obj[key]);
-          }
-          return result;
-        }
-        return obj;
-      };
+        };
 
-      workflow = restoreExpressions(workflow);
-      console.log('Parsed workflow:', workflow);
+        workflow = restoreRefs(workflow);
+      }
+
+      console.log('Final workflow:', workflow);
     } catch (e) {
       console.error('JSON parse error:', e);
       console.error('Raw content:', response.choices[0].message.content);
