@@ -82,12 +82,26 @@ serve(async (req) => {
       // Try to extract JSON if response is wrapped in markdown code block
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const jsonContent = jsonMatch ? jsonMatch[1].trim() : content;
+
+      // Limpa possíveis caracteres especiais e escapa aspas
+      const cleanContent = jsonContent
+        .replace(/[\u0000-\u001F]+/g, '') // Remove caracteres de controle
+        .replace(/\\/g, '\\\\') // Escapa barras invertidas
+        .replace(/\\"/g, '\\"') // Preserva aspas já escapadas
+        .replace(/(?<!\\)"/g, '\\"'); // Escapa aspas não escapadas
       
-      workflow = JSON.parse(jsonContent);
+      try {
+        workflow = JSON.parse(cleanContent);
+      } catch (jsonError) {
+        // Se falhar, tenta remover todas as quebras de linha e espaços extras
+        const minifiedContent = cleanContent.replace(/\s+/g, ' ').trim();
+        workflow = JSON.parse(minifiedContent);
+      }
+
       console.log('Parsed workflow:', workflow);
     } catch (e) {
       console.error('JSON parse error:', e, 'Raw content:', response.choices[0].message.content);
-      throw new Error('Formato de workflow inválido');
+      throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
     }
 
     try {
