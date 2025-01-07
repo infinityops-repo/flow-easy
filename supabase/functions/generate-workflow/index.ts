@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { parse } from "https://deno.land/x/json5@v1.0.0/mod.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { validateMakeWorkflow, validateN8nWorkflow } from "./workflowValidator.ts";
 import { buildMakePrompt, buildN8nPrompt } from "./promptBuilder.ts";
@@ -83,14 +84,19 @@ serve(async (req) => {
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const jsonString = jsonMatch ? jsonMatch[1].trim() : content;
       
-      // Trata aspas dentro de strings no JSON
-      const processedJson = jsonString
-        .replace(/\n\s*/g, ' ')
-        .replace(/=\{\{([^}]+)\}\}/g, (_, p1) => `"{{${p1}}}"`)
-        .replace(/"\{\{([^}]+)\}\}"/g, "{{$1}}")
-        .trim();
+      try {
+        workflow = parse(jsonString);
+      } catch (parseError) {
+        console.error('First parse attempt failed:', parseError);
+        // Se falhar, tenta limpar o JSON e tentar novamente
+        const cleanJson = jsonString
+          .replace(/\n\s*/g, ' ')
+          .replace(/=\{\{/g, '{{')
+          .replace(/\}\}/g, '}}')
+          .trim();
+        workflow = parse(cleanJson);
+      }
       
-      workflow = JSON.parse(processedJson);
       console.log('Parsed workflow:', workflow);
     } catch (e) {
       console.error('JSON parse error:', e);
