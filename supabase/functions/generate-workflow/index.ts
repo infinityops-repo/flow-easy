@@ -87,27 +87,36 @@ serve(async (req) => {
       const PLACEHOLDER = "__EXPRESSION__";
       const expressions: string[] = [];
       
-      const contentWithPlaceholders = jsonContent.replace(
-        /=\{\{[^}]+\}\}/g,
-        (match) => {
-          expressions.push(match);
-          return `"${PLACEHOLDER}${expressions.length - 1}"`;
-        }
-      );
+      // Primeiro, encontra todas as expressões de interpolação
+      const interpolationRegex = /=\{\{[^}]+\}\}/g;
+      const matches = jsonContent.match(interpolationRegex) || [];
+      
+      // Cria um mapa de substituições
+      const replacements = new Map<string, string>();
+      matches.forEach((match, index) => {
+        const placeholder = `"${PLACEHOLDER}${index}"`;
+        replacements.set(match, placeholder);
+      });
+
+      // Aplica as substituições em ordem
+      let processedContent = jsonContent;
+      replacements.forEach((placeholder, expression) => {
+        processedContent = processedContent.replace(expression, placeholder);
+      });
 
       try {
         // Primeira tentativa: parse direto
-        workflow = JSON.parse(contentWithPlaceholders);
+        workflow = JSON.parse(processedContent);
       } catch (firstError) {
         console.error('First parse attempt failed:', firstError);
         try {
           // Segunda tentativa: remove caracteres de controle
-          const cleanContent = contentWithPlaceholders.replace(/[\u0000-\u001F]+/g, '');
+          const cleanContent = processedContent.replace(/[\u0000-\u001F]+/g, '');
           workflow = JSON.parse(cleanContent);
         } catch (secondError) {
           console.error('Second parse attempt failed:', secondError);
           // Terceira tentativa: remove quebras de linha e espaços extras
-          const minifiedContent = contentWithPlaceholders.replace(/\s+/g, ' ').trim();
+          const minifiedContent = processedContent.replace(/\s+/g, ' ').trim();
           workflow = JSON.parse(minifiedContent);
         }
       }
@@ -117,7 +126,8 @@ serve(async (req) => {
         if (typeof obj === 'string') {
           const match = obj.match(new RegExp(`^"?${PLACEHOLDER}(\\d+)"?$`));
           if (match) {
-            return expressions[parseInt(match[1])];
+            const index = parseInt(match[1]);
+            return matches[index];
           }
           return obj;
         }
