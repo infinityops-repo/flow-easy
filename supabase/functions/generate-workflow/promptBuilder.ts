@@ -22,63 +22,65 @@ export const buildSystemPrompt = (platform: string) => {
      - headers: object (opcional, ex: {"Content-Type": "application/json"})
      - body: object (opcional para POST/PUT, ex: {"chave": "valor"})
 
-     Exemplo de nó HTTP:
-     {
-       "type": "n8n-nodes-base.httpRequest",
-       "parameters": {
-         "url": "https://api.exemplo.com/dados",
-         "method": "GET",
-         "headers": {
-           "Content-Type": "application/json"
-         }
-       }
-     }
-  
   3. Para notificações do Discord, use "n8n-nodes-base.discord" com os parâmetros:
      - channel: string (obrigatório, ex: "#anuncios")
      - text: string (obrigatório, ex: "Nova mensagem")
      - webhookUrl: string (obrigatório, ex: "https://discord.com/api/webhooks/xxx")
-
-     Exemplo de nó Discord:
-     {
-       "type": "n8n-nodes-base.discord",
-       "parameters": {
-         "channel": "#anuncios",
-         "text": "Nova mensagem",
-         "webhookUrl": "https://discord.com/api/webhooks/xxx"
-       }
-     }
 
   4. Para notificações do Telegram, use "n8n-nodes-base.telegram" com os parâmetros:
      - chatId: string (obrigatório, ex: "123456789")
      - text: string (obrigatório, ex: "Nova mensagem")
      - botToken: string (obrigatório, ex: "1234567890:xxx")
 
-     Exemplo de nó Telegram:
-     {
-       "type": "n8n-nodes-base.telegram",
-       "parameters": {
-         "chatId": "123456789",
-         "text": "Nova mensagem",
-         "botToken": "1234567890:xxx"
+  REGRAS DE CONEXÕES:
+  1. Cada nó deve estar conectado ao próximo nó na sequência lógica do workflow
+  2. As conexões devem ser definidas no objeto "connections" usando os IDs dos nós
+  3. Exemplo de estrutura de conexões:
+     "connections": {
+       "Node1": {
+         "main": [
+           [
+             {
+               "node": "Node2",
+               "type": "main",
+               "index": 0
+             }
+           ]
+         ]
        }
      }
+  4. Certifique-se de que cada nó tenha uma conexão com o próximo nó na sequência
 
-  IMPORTANTE: Inclua APENAS os nós necessários para a automação solicitada. NÃO inclua nós de agendamento (schedule) ou outros nós que não foram especificamente solicitados.
-  
-  REGRAS DE ESTRUTURA DO WORKFLOW:
-  1. Cada nó deve ter um UUID único como id
-  2. As coordenadas de posição devem estar espaçadas (ex: [100, 200], [300, 200])
-  3. As conexões devem ligar os nós em ordem lógica
-  4. Todos os parâmetros devem corresponder ao tipo esperado (string, number, array, etc)
-  5. Inclua tratamento de erros apropriado para requisições HTTP
-  
-  ANÁLISE DA SOLICITAÇÃO:
-  1. Identifique o objetivo principal (notificação, busca de dados, automação)
-  2. Escolha APENAS os nós necessários para atingir o objetivo
-  3. Configure a sequência e conexões dos nós
-  4. Inclua todos os parâmetros necessários
-  5. Adicione tratamento de erros quando necessário
+  ESTRUTURA DO WORKFLOW:
+  {
+    "nodes": [
+      {
+        "id": "uuid-1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [100, 200],
+        "parameters": { ... }
+      }
+    ],
+    "connections": {
+      "uuid-1": {
+        "main": [
+          [
+            {
+              "node": "uuid-2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  }
+
+  IMPORTANTE: 
+  - Inclua APENAS os nós necessários para a automação solicitada
+  - NÃO inclua nós de agendamento (schedule) ou outros nós que não foram especificamente solicitados
+  - SEMPRE crie as conexões entre os nós na ordem correta
+  - Posicione os nós em coordenadas que façam sentido visualmente (espaçados e alinhados)
   
   Retorne APENAS o objeto JSON do workflow, sem explicações ou formatação markdown.`;
 };
