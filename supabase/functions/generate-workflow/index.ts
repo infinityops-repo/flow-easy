@@ -7,7 +7,6 @@ import { buildMakePrompt, buildN8nPrompt } from "./promptBuilder.ts";
 const openAiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -36,12 +35,24 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt }
+          { 
+            role: "system", 
+            content: systemPrompt 
+          },
+          { 
+            role: "user", 
+            content: `Create a workflow that: ${prompt}. Remember to include all required fields and at least 2 modules/nodes with proper connections.` 
+          }
         ],
         temperature: 0.7,
       }),
     });
+
+    if (!completion.ok) {
+      const error = await completion.text();
+      console.error('OpenAI API error:', error);
+      throw new Error('Erro ao gerar workflow com OpenAI');
+    }
 
     const response = await completion.json();
     console.log('OpenAI response received');
@@ -70,7 +81,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         workflow,
-        shareableUrl: null // You can implement sharing functionality later
+        shareableUrl: null
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

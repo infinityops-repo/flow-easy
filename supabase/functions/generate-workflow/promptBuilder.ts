@@ -1,17 +1,34 @@
 export const buildMakePrompt = () => {
-  return `Você é um especialista em automação usando Make (anteriormente Integromat).
-Crie um workflow Make válido baseado na descrição do usuário.
-O workflow deve incluir:
-- name: nome descritivo do cenário
-- modules: array de módulos com suas configurações completas
-  Cada módulo deve ter:
-  - name: nome do módulo
-  - type: tipo do módulo (HTTP, JSON, etc)
-  - parameters: objeto com as configurações específicas
-- connections: array de conexões entre módulos
-- metadata: informações adicionais do cenário
+  return `You are an expert in Make (formerly Integromat) automation workflows.
+Create a valid Make workflow based on the user's description.
+ALWAYS respond with a complete JSON workflow that includes:
 
-Use apenas módulos comuns e populares do Make como:
+{
+  "name": "Descriptive Scenario Name",
+  "modules": [
+    {
+      "name": "Module Name",
+      "type": "module-type",
+      "parameters": {
+        "key": "value",
+        "method": "GET/POST",
+        "url": "https://api.example.com"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "Module 1",
+      "to": "Module 2"
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "notes": "Scenario description"
+  }
+}
+
+Use only common Make modules like:
 - HTTP
 - JSON
 - Tools
@@ -23,69 +40,54 @@ Use apenas módulos comuns e populares do Make como:
 - Data store
 - Flow control
 
-Responda APENAS com o JSON do workflow, sem explicações adicionais.
-Exemplo de formato:
-{
-  "name": "Nome do Cenário",
-  "modules": [
-    {
-      "name": "HTTP",
-      "type": "http",
-      "parameters": {
-        "url": "https://api.example.com",
-        "method": "GET"
-      }
-    }
-  ],
-  "connections": [],
-  "metadata": {
-    "instant": false,
-    "notes": "Descrição do cenário"
-  }
-}`;
+IMPORTANT: Always include at least 2 modules and their connections.
+Respond ONLY with the JSON, no explanations.`;
 };
 
 export const buildN8nPrompt = () => {
-  return `Você é um especialista em automação usando n8n.
-Crie um workflow n8n válido baseado na descrição do usuário.
-O workflow deve incluir:
-- nodes: array completo de nós com suas configurações
-  Cada nó deve ter:
-  - name: nome do nó
-  - type: tipo do nó
-  - parameters: objeto com configurações específicas
-  - position: coordenadas x,y para posicionamento
-- connections: objeto com as conexões entre nós
+  return `You are an expert in n8n automation workflows.
+Create a valid n8n workflow based on the user's description.
+ALWAYS respond with a complete JSON workflow that includes:
 
-Use apenas nós comuns e populares do n8n como:
-- HTTP Request
-- Function
-- IF
-- Switch
-- Set
-- Gmail
-- Google Sheets
-- Webhook
-- Schedule Trigger
-
-Responda APENAS com o JSON do workflow, sem explicações adicionais.
-Exemplo de formato:
 {
   "nodes": [
     {
-      "name": "HTTP Request",
-      "type": "n8n-nodes-base.httpRequest",
+      "name": "Node Name",
+      "type": "n8n-nodes-base.nodeType",
       "parameters": {
-        "url": "https://api.example.com",
-        "method": "GET"
+        "key": "value",
+        "method": "GET/POST",
+        "url": "https://api.example.com"
       },
-      "position": [100, 100]
+      "position": [x, y]
     }
   ],
   "connections": {
-    "HTTP Request": {
-      "main": [[]]
+    "Node Name": {
+      "main": [
+        [
+          {
+            "node": "Next Node Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   }
-}`;
+}
+
+Use only common n8n nodes like:
+- HTTP Request (n8n-nodes-base.httpRequest)
+- Function (n8n-nodes-base.function)
+- IF (n8n-nodes-base.if)
+- Switch (n8n-nodes-base.switch)
+- Set (n8n-nodes-base.set)
+- Gmail (n8n-nodes-base.gmail)
+- Google Sheets (n8n-nodes-base.googleSheets)
+- Webhook (n8n-nodes-base.webhook)
+- Schedule Trigger (n8n-nodes-base.scheduleTrigger)
+
+IMPORTANT: Always include at least 2 nodes and their connections.
+Respond ONLY with the JSON, no explanations.`;
 };
