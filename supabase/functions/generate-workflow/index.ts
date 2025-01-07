@@ -64,18 +64,30 @@ serve(async (req) => {
 
     let workflow;
     try {
-      workflow = JSON.parse(response.choices[0].message.content);
+      const content = response.choices[0].message.content.trim();
+      console.log('Raw OpenAI response:', content);
+      
+      // Try to extract JSON if response is wrapped in markdown code block
+      const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
+      const jsonContent = jsonMatch ? jsonMatch[1].trim() : content;
+      
+      workflow = JSON.parse(jsonContent);
       console.log('Parsed workflow:', workflow);
     } catch (e) {
-      console.error('JSON parse error:', e);
+      console.error('JSON parse error:', e, 'Raw content:', response.choices[0].message.content);
       throw new Error('Formato de workflow inválido');
     }
 
-    // Validate the workflow based on platform
-    if (platform === 'make') {
-      validateMakeWorkflow(workflow);
-    } else {
-      validateN8nWorkflow(workflow);
+    try {
+      // Validate the workflow based on platform
+      if (platform === 'make') {
+        validateMakeWorkflow(workflow);
+      } else {
+        validateN8nWorkflow(workflow);
+      }
+    } catch (e) {
+      console.error('Validation error:', e, 'Workflow:', workflow);
+      throw e;
     }
 
     return new Response(
