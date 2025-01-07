@@ -83,72 +83,41 @@ serve(async (req) => {
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const jsonContent = jsonMatch ? jsonMatch[1].trim() : content;
 
-      // Primeiro, vamos tentar parsear diretamente
+      // Substitui temporariamente as expressões de interpolação
+      const processedContent = jsonContent.replace(
+        /=\{\{[^}]+\}\}/g,
+        (match) => `"${match}"`
+      );
+
       try {
-        workflow = JSON.parse(jsonContent);
+        workflow = JSON.parse(processedContent);
       } catch (parseError) {
-        console.log('Direct parse failed, trying with preprocessing');
-        
-        // Se falhar, vamos pré-processar o conteúdo
-        const PLACEHOLDER = "__NODE_REF__";
-        const nodeRefs = new Map<string, string>();
-        let refCount = 0;
-
-        // Função para substituir referências a nós
-        const replaceNodeRefs = (match: string, p1: string) => {
-          const placeholder = `${PLACEHOLDER}${refCount}`;
-          nodeRefs.set(placeholder, match);
-          refCount++;
-          return `"${placeholder}"`;
-        };
-
-        // Substitui referências a nós e expressões de interpolação
-        let processedContent = jsonContent
-          // Substitui referências a nós com aspas duplas
-          .replace(/=\{\{\s*\$node\["([^"]+)"\][^}]+\}\}/g, replaceNodeRefs)
-          // Substitui referências a credenciais
-          .replace(/=\{\{\s*\$credentials[^}]+\}\}/g, replaceNodeRefs)
-          // Substitui outras expressões de interpolação
-          .replace(/=\{\{[^}]+\}\}/g, replaceNodeRefs);
-
-        console.log('Processed content:', processedContent);
-
-        try {
-          workflow = JSON.parse(processedContent);
-        } catch (secondError) {
-          console.error('Second parse attempt failed:', secondError);
-          // Se ainda falhar, tenta remover quebras de linha
-          const minifiedContent = processedContent.replace(/\s+/g, ' ').trim();
-          workflow = JSON.parse(minifiedContent);
-        }
-
-        // Restaura as referências originais
-        const restoreRefs = (obj: any): any => {
-          if (typeof obj === 'string') {
-            for (const [placeholder, original] of nodeRefs.entries()) {
-              if (obj === placeholder || obj === `"${placeholder}"`) {
-                return original;
-              }
-            }
-            return obj;
-          }
-          if (Array.isArray(obj)) {
-            return obj.map(item => restoreRefs(item));
-          }
-          if (obj && typeof obj === 'object') {
-            const result: any = {};
-            for (const key in obj) {
-              result[key] = restoreRefs(obj[key]);
-            }
-            return result;
-          }
-          return obj;
-        };
-
-        workflow = restoreRefs(workflow);
+        console.error('Parse error:', parseError);
+        // Se falhar, tenta remover quebras de linha
+        const minifiedContent = processedContent.replace(/\s+/g, ' ').trim();
+        workflow = JSON.parse(minifiedContent);
       }
 
-      console.log('Final workflow:', workflow);
+      // Remove as aspas extras das expressões de interpolação
+      const restoreExpressions = (obj: any): any => {
+        if (typeof obj === 'string' && obj.startsWith('"=')) {
+          return obj.slice(1, -1);
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(item => restoreExpressions(item));
+        }
+        if (obj && typeof obj === 'object') {
+          const result: any = {};
+          for (const key in obj) {
+            result[key] = restoreExpressions(obj[key]);
+          }
+          return result;
+        }
+        return obj;
+      };
+
+      workflow = restoreExpressions(workflow);
+      console.log('Parsed workflow:', workflow);
     } catch (e) {
       console.error('JSON parse error:', e);
       console.error('Raw content:', response.choices[0].message.content);
