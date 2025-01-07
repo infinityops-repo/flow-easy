@@ -14,6 +14,7 @@ serve(async (req) => {
 
   try {
     const { prompt, platform } = await req.json();
+    console.log('Received request:', { prompt, platform });
 
     if (!prompt) {
       throw new Error('Prompt é obrigatório');
@@ -25,6 +26,7 @@ serve(async (req) => {
 
     const systemPrompt = platform === 'make' ? buildMakePrompt() : buildN8nPrompt();
     
+    console.log('Sending request to OpenAI...');
     const completion = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -42,20 +44,23 @@ serve(async (req) => {
     });
 
     const response = await completion.json();
+    console.log('OpenAI response received');
     
     if (!response.choices?.[0]?.message?.content) {
+      console.error('Invalid OpenAI response:', response);
       throw new Error('Resposta inválida da API');
     }
 
     let workflow;
     try {
       workflow = JSON.parse(response.choices[0].message.content);
+      console.log('Parsed workflow:', workflow);
     } catch (e) {
-      console.error('Erro ao fazer parse do JSON:', e);
+      console.error('JSON parse error:', e);
       throw new Error('Formato de workflow inválido');
     }
 
-    // Validar o workflow gerado
+    // Validate the workflow based on platform
     if (platform === 'make') {
       validateMakeWorkflow(workflow);
     } else {
@@ -63,7 +68,10 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ workflow }),
+      JSON.stringify({ 
+        workflow,
+        shareableUrl: null // You can implement sharing functionality later
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -71,7 +79,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro:', error);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
