@@ -83,24 +83,62 @@ serve(async (req) => {
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const jsonContent = jsonMatch ? jsonMatch[1].trim() : content;
 
-      // Limpa possíveis caracteres especiais e escapa aspas
-      const cleanContent = jsonContent
-        .replace(/[\u0000-\u001F]+/g, '') // Remove caracteres de controle
-        .replace(/\\/g, '\\\\') // Escapa barras invertidas
-        .replace(/\\"/g, '\\"') // Preserva aspas já escapadas
-        .replace(/(?<!\\)"/g, '\\"'); // Escapa aspas não escapadas
+      // Substitui temporariamente as expressões de interpolação
+      const PLACEHOLDER = "__EXPRESSION__";
+      const expressions: string[] = [];
       
+      const contentWithPlaceholders = jsonContent.replace(
+        /=\{\{[^}]+\}\}/g,
+        (match) => {
+          expressions.push(match);
+          return `"${PLACEHOLDER}${expressions.length - 1}"`;
+        }
+      );
+
       try {
-        workflow = JSON.parse(cleanContent);
-      } catch (jsonError) {
-        // Se falhar, tenta remover todas as quebras de linha e espaços extras
-        const minifiedContent = cleanContent.replace(/\s+/g, ' ').trim();
-        workflow = JSON.parse(minifiedContent);
+        // Primeira tentativa: parse direto
+        workflow = JSON.parse(contentWithPlaceholders);
+      } catch (firstError) {
+        console.error('First parse attempt failed:', firstError);
+        try {
+          // Segunda tentativa: remove caracteres de controle
+          const cleanContent = contentWithPlaceholders.replace(/[\u0000-\u001F]+/g, '');
+          workflow = JSON.parse(cleanContent);
+        } catch (secondError) {
+          console.error('Second parse attempt failed:', secondError);
+          // Terceira tentativa: remove quebras de linha e espaços extras
+          const minifiedContent = contentWithPlaceholders.replace(/\s+/g, ' ').trim();
+          workflow = JSON.parse(minifiedContent);
+        }
       }
 
+      // Restaura as expressões de interpolação
+      const restoreExpressions = (obj: any): any => {
+        if (typeof obj === 'string') {
+          const match = obj.match(new RegExp(`^"?${PLACEHOLDER}(\\d+)"?$`));
+          if (match) {
+            return expressions[parseInt(match[1])];
+          }
+          return obj;
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(item => restoreExpressions(item));
+        }
+        if (obj && typeof obj === 'object') {
+          const result: any = {};
+          for (const key in obj) {
+            result[key] = restoreExpressions(obj[key]);
+          }
+          return result;
+        }
+        return obj;
+      };
+
+      workflow = restoreExpressions(workflow);
       console.log('Parsed workflow:', workflow);
     } catch (e) {
-      console.error('JSON parse error:', e, 'Raw content:', response.choices[0].message.content);
+      console.error('JSON parse error:', e);
+      console.error('Raw content:', response.choices[0].message.content);
       throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
     }
 
