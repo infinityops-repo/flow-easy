@@ -53,6 +53,16 @@ serve(async (req) => {
       console.error('OpenAI API error:', error);
       console.error('OpenAI API status:', completion.status);
       console.error('OpenAI API statusText:', completion.statusText);
+
+      try {
+        const errorJson = JSON.parse(error);
+        if (errorJson.error?.code === 'insufficient_quota') {
+          throw new Error('Limite de requisições atingido. Por favor, tente novamente mais tarde.');
+        }
+      } catch (e) {
+        // Se não conseguir parsear o JSON, usa a mensagem genérica
+      }
+      
       throw new Error(`Erro ao chamar OpenAI API: ${completion.status} - ${completion.statusText}`);
     }
 
