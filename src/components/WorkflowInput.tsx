@@ -52,7 +52,7 @@ export const WorkflowInput = () => {
       
       toast({
         title: "Sucesso",
-        description: "Workflow gerado com sucesso!",
+        description: `Workflow ${platform === 'make' ? 'Make' : 'n8n'} gerado com sucesso!`,
       });
 
     } catch (error) {
@@ -68,15 +68,23 @@ export const WorkflowInput = () => {
   };
 
   const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(generatedWorkflow, null, 2));
+    const workflowString = platform === 'make' 
+      ? JSON.stringify(generatedWorkflow, null, 2)
+      : JSON.stringify(generatedWorkflow, null, 2);
+    
+    navigator.clipboard.writeText(workflowString);
     toast({
       title: "Copiado!",
-      description: "JSON do workflow copiado para a área de transferência",
+      description: `JSON do workflow ${platform === 'make' ? 'Make' : 'n8n'} copiado para a área de transferência`,
     });
   };
 
   const handleDownloadJson = () => {
-    const blob = new Blob([JSON.stringify(generatedWorkflow, null, 2)], { type: 'application/json' });
+    const workflowString = platform === 'make' 
+      ? JSON.stringify(generatedWorkflow, null, 2)
+      : JSON.stringify(generatedWorkflow, null, 2);
+    
+    const blob = new Blob([workflowString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -87,13 +95,20 @@ export const WorkflowInput = () => {
     URL.revokeObjectURL(url);
   };
 
+  const getPlatformInstructions = () => {
+    if (platform === 'make') {
+      return "Para importar no Make (Integromat):\n1. Acesse make.com\n2. Clique em 'Criar um novo cenário'\n3. Clique no menu '...' (três pontos)\n4. Selecione 'Importar Blueprint'\n5. Cole o JSON gerado";
+    }
+    return "Para importar no n8n:\n1. Acesse seu n8n\n2. Clique em 'Workflows'\n3. Clique em 'Import from File'\n4. Cole o JSON gerado";
+  };
+
   return (
     <div className="w-full max-w-4xl px-4">
       <div className="glass-card p-4 space-y-4">
         <div className="flex flex-col space-y-4">
           <Input
             className="w-full bg-background/80 border-0 placeholder:text-muted-foreground/70 text-base h-12 px-4 resize-y min-h-[3rem] max-h-[12rem] rounded-md"
-            placeholder={`Peça ao FlowEasy para criar um workflow ${platform} para...`}
+            placeholder={`Peça ao FlowEasy para criar um workflow ${platform === 'make' ? 'Make' : 'n8n'} para...`}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
@@ -129,9 +144,9 @@ export const WorkflowInput = () => {
       <Dialog open={showWorkflow} onOpenChange={setShowWorkflow}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Workflow Gerado</DialogTitle>
+            <DialogTitle>Workflow {platform === 'make' ? 'Make' : 'n8n'} Gerado</DialogTitle>
             <DialogDescription>
-              Aqui está seu workflow gerado para {platform}
+              {getPlatformInstructions()}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-4">

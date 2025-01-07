@@ -1,91 +1,113 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { buildSystemPrompt } from "./promptBuilder.ts";
-import { validateWorkflow } from "./workflowValidator.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
+import { corsHeaders } from "../_shared/cors.ts"
+import { validateMakeWorkflow, validateN8nWorkflow } from "./workflowValidator.ts"
+import { buildMakePrompt, buildN8nPrompt } from "./promptBuilder.ts"
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const openAiApiKey = Deno.env.get('OPENAI_API_KEY')
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { prompt, platform } = await req.json();
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
+    const { prompt, platform } = await req.json()
 
-    if (!prompt || !platform) {
-      throw new Error('Prompt e plataforma são obrigatórios');
+    if (!prompt) {
+      throw new Error('Prompt é obrigatório')
     }
 
-    console.log('Processando solicitação:', { prompt, platform });
+    if (!['n8n', 'make'].includes(platform)) {
+      throw new Error('Plataforma inválida')
+    }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const systemPrompt = platform === 'make' ? buildMakePrompt() : buildN8nPrompt()
+    
+    const completion = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: "gpt-4",
         messages: [
-          { 
-            role: 'system', 
-            content: buildSystemPrompt(platform)
-          },
-          { 
-            role: 'user', 
-            content: `Crie um workflow para: ${prompt}. Retorne APENAS o objeto JSON do workflow.` 
-          }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
         ],
         temperature: 0.7,
       }),
-    });
+    })
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Erro na API do OpenAI:', errorData);
-      throw new Error(`Erro na API do OpenAI: ${errorData}`);
-    }
-
-    const data = await response.json();
-    console.log('Resposta do OpenAI recebida');
-
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Resposta inválida do OpenAI');
-    }
-
-    let workflow = null;
+    const response = await completion.json()
     
-    try {
-      const workflowText = data.choices[0].message.content.trim();
-      console.log('Workflow gerado:', workflowText);
-      
-      workflow = JSON.parse(workflowText);
-      console.log('Validando estrutura do workflow');
-      
-      validateWorkflow(workflow, platform);
-      
-      const shareableUrl = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(workflow, null, 2))}`;
-
-      return new Response(
-        JSON.stringify({ workflow, shareableUrl }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } catch (error) {
-      console.error('Erro ao processar workflow:', error);
-      throw new Error(`Falha ao gerar JSON válido do workflow: ${error.message}`);
+    if (!response.choices?.[0]?.message?.content) {
+      throw new Error('Resposta inválida da API')
     }
+
+    let workflow
+    try {
+      workflow = JSON.parse(response.choices[0].message.content)
+    } catch (e) {
+      console.error('Erro ao fazer parse do JSON:', e)
+      throw new Error('Formato de workflow inválido')
+    }
+
+    // Validar o workflow gerado
+    if (platform === 'make') {
+      validateMakeWorkflow(workflow)
+    } else {
+      validateN8nWorkflow(workflow)
+    }
+
+    // Salvar o workflow no banco de dados
+    const { data: { user } } = await supabase.auth.getUser(req.headers.get('Authorization')?.split('Bearer ')[1] || '')
+    
+    if (!user) {
+      throw new Error('Usuário não autenticado')
+    }
+
+    const { data: workflowData, error: workflowError } = await supabase
+      .from('workflows')
+      .insert([
+        {
+          title: `Workflow ${platform} - ${new Date().toLocaleString()}`,
+          description: prompt,
+          nodes: workflow.nodes || {},
+          connections: workflow.connections || {},
+          user_id: user.id,
+        }
+      ])
+      .select()
+      .single()
+
+    if (workflowError) {
+      throw workflowError
+    }
+
+    return new Response(
+      JSON.stringify({
+        workflow,
+        shareableUrl: `${supabaseUrl}/storage/v1/object/public/workflows/${workflowData.id}`,
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
+
   } catch (error) {
-    console.error('Erro:', error);
+    console.error('Erro:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      },
+    )
   }
-});
+})
