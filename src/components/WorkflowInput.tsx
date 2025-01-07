@@ -19,8 +19,8 @@ export const WorkflowInput = () => {
   const handleGenerateWorkflow = async () => {
     if (!prompt.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a description for your workflow",
+        title: "Erro",
+        description: "Por favor, insira uma descrição para seu workflow",
         variant: "destructive",
       });
       return;
@@ -30,42 +30,36 @@ export const WorkflowInput = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await fetch(
-        'https://juaeaocrdoaxwuybjkkv.supabase.co/functions/v1/generate-workflow',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ prompt, platform }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to generate workflow');
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado');
       }
 
-      const { workflow, shareableUrl, error } = await response.json();
-      
+      const { data, error } = await supabase.functions.invoke('generate-workflow', {
+        body: { prompt, platform },
+      });
+
       if (error) {
-        throw new Error(error);
+        throw error;
       }
 
-      setGeneratedWorkflow(workflow);
-      setShareableUrl(shareableUrl);
+      if (!data || !data.workflow) {
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      setGeneratedWorkflow(data.workflow);
+      setShareableUrl(data.shareableUrl);
       setShowWorkflow(true);
       
       toast({
-        title: "Success",
-        description: "Workflow generated successfully!",
+        title: "Sucesso",
+        description: "Workflow gerado com sucesso!",
       });
 
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Erro:', error);
       toast({
-        title: "Error",
-        description: "Failed to generate workflow. Please try again.",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Falha ao gerar workflow. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -76,8 +70,8 @@ export const WorkflowInput = () => {
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(generatedWorkflow, null, 2));
     toast({
-      title: "Copied!",
-      description: "Workflow JSON copied to clipboard",
+      title: "Copiado!",
+      description: "JSON do workflow copiado para a área de transferência",
     });
   };
 
@@ -99,7 +93,7 @@ export const WorkflowInput = () => {
         <div className="flex flex-col space-y-4">
           <Input
             className="w-full bg-background/80 border-0 placeholder:text-muted-foreground/70 text-base h-12 px-4 resize-y min-h-[3rem] max-h-[12rem] rounded-md"
-            placeholder={`Ask FlowEasy to create a ${platform} workflow for my...`}
+            placeholder={`Peça ao FlowEasy para criar um workflow ${platform} para...`}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
@@ -110,7 +104,7 @@ export const WorkflowInput = () => {
               </Button>
               <Select value={platform} onValueChange={setPlatform}>
                 <SelectTrigger className="w-[120px] bg-background/80 border-0 h-9">
-                  <SelectValue placeholder="Select platform" />
+                  <SelectValue placeholder="Selecione a plataforma" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="n8n">n8n</SelectItem>
@@ -126,7 +120,7 @@ export const WorkflowInput = () => {
               onClick={handleGenerateWorkflow}
               disabled={isLoading}
             >
-              {isLoading ? "Generating..." : "Create →"}
+              {isLoading ? "Gerando..." : "Criar →"}
             </Button>
           </div>
         </div>
@@ -135,20 +129,20 @@ export const WorkflowInput = () => {
       <Dialog open={showWorkflow} onOpenChange={setShowWorkflow}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Generated Workflow</DialogTitle>
+            <DialogTitle>Workflow Gerado</DialogTitle>
             <DialogDescription>
-              Here's your generated workflow for {platform}
+              Aqui está seu workflow gerado para {platform}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-4">
             <div className="flex justify-end space-x-2">
               <Button variant="outline" size="sm" onClick={handleCopyJson}>
                 <Copy className="h-4 w-4 mr-2" />
-                Copy JSON
+                Copiar JSON
               </Button>
               <Button variant="outline" size="sm" onClick={handleDownloadJson}>
                 <Download className="h-4 w-4 mr-2" />
-                Download JSON
+                Baixar JSON
               </Button>
             </div>
             <div className="prose prose-sm max-w-none">
@@ -158,7 +152,7 @@ export const WorkflowInput = () => {
             </div>
             {shareableUrl && (
               <div className="mt-4">
-                <p className="text-sm font-medium mb-2">Shareable Link:</p>
+                <p className="text-sm font-medium mb-2">Link Compartilhável:</p>
                 <Input 
                   value={shareableUrl} 
                   readOnly 
