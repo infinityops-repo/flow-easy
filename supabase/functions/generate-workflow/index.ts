@@ -84,12 +84,23 @@ serve(async (req) => {
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const rawWorkflow = jsonMatch ? jsonMatch[1].trim() : content;
 
-      // Limpa o JSON removendo caracteres de escape
-      workflow = rawWorkflow
-        .replace(/\\n/g, '')
-        .replace(/\\"/g, '"')
-        .replace(/\s+/g, ' ')
-        .trim();
+      try {
+        // Primeiro faz o parse para validar o JSON
+        const parsedWorkflow = JSON.parse(rawWorkflow);
+        
+        // Valida o workflow baseado na plataforma
+        if (platform === 'make') {
+          validateMakeWorkflow(parsedWorkflow);
+        } else {
+          validateN8nWorkflow(parsedWorkflow);
+        }
+
+        // Se chegou aqui, o workflow é válido
+        workflow = rawWorkflow;
+      } catch (parseError) {
+        console.error('Parse/Validation error:', parseError);
+        throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
+      }
       
       return new Response(
         JSON.stringify({ 
@@ -106,29 +117,6 @@ serve(async (req) => {
       console.error('Raw content:', response.choices[0].message.content);
       throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
     }
-
-    try {
-      // Validate the workflow based on platform
-      if (platform === 'make') {
-        validateMakeWorkflow(workflow);
-      } else {
-        validateN8nWorkflow(workflow);
-      }
-    } catch (e) {
-      console.error('Validation error:', e, 'Workflow:', workflow);
-      throw e;
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        workflow,
-        shareableUrl: null
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    );
 
   } catch (error) {
     console.error('Error:', error);
