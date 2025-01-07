@@ -79,44 +79,14 @@ serve(async (req) => {
       const content = response.choices[0].message.content.trim();
       console.log('Raw OpenAI response:', content);
       
-      // Try to extract JSON if response is wrapped in markdown code block
+      // Extrai o JSON do bloco de código markdown
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
-      const jsonContent = jsonMatch ? jsonMatch[1].trim() : content;
-
-      // Substitui temporariamente as expressões de interpolação
-      const processedContent = jsonContent.replace(
-        /=\{\{[^}]+\}\}/g,
-        (match) => `"${match}"`
-      );
-
-      try {
-        workflow = JSON.parse(processedContent);
-      } catch (parseError) {
-        console.error('Parse error:', parseError);
-        // Se falhar, tenta remover quebras de linha
-        const minifiedContent = processedContent.replace(/\s+/g, ' ').trim();
-        workflow = JSON.parse(minifiedContent);
-      }
-
-      // Remove as aspas extras das expressões de interpolação
-      const restoreExpressions = (obj: any): any => {
-        if (typeof obj === 'string' && obj.startsWith('"=')) {
-          return obj.slice(1, -1);
-        }
-        if (Array.isArray(obj)) {
-          return obj.map(item => restoreExpressions(item));
-        }
-        if (obj && typeof obj === 'object') {
-          const result: any = {};
-          for (const key in obj) {
-            result[key] = restoreExpressions(obj[key]);
-          }
-          return result;
-        }
-        return obj;
-      };
-
-      workflow = restoreExpressions(workflow);
+      const jsonString = jsonMatch ? jsonMatch[1].trim() : content;
+      
+      // Remove quebras de linha e espaços extras
+      const cleanJson = jsonString.replace(/\n\s*/g, ' ').trim();
+      
+      workflow = JSON.parse(cleanJson);
       console.log('Parsed workflow:', workflow);
     } catch (e) {
       console.error('JSON parse error:', e);
