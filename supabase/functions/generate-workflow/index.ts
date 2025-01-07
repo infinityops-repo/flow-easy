@@ -83,10 +83,14 @@ serve(async (req) => {
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const jsonString = jsonMatch ? jsonMatch[1].trim() : content;
       
-      // Remove quebras de linha e espaços extras
-      const cleanJson = jsonString.replace(/\n\s*/g, ' ').trim();
+      // Trata aspas dentro de strings no JSON
+      const processedJson = jsonString
+        .replace(/\n\s*/g, ' ')
+        .replace(/=\{\{([^}]+)\}\}/g, (_, p1) => `"{{${p1}}}"`)
+        .replace(/"\{\{([^}]+)\}\}"/g, "{{$1}}")
+        .trim();
       
-      workflow = JSON.parse(cleanJson);
+      workflow = JSON.parse(processedJson);
       console.log('Parsed workflow:', workflow);
     } catch (e) {
       console.error('JSON parse error:', e);
