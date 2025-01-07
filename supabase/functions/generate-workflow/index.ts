@@ -51,7 +51,9 @@ serve(async (req) => {
     if (!completion.ok) {
       const error = await completion.text();
       console.error('OpenAI API error:', error);
-      throw new Error('Erro ao gerar workflow com OpenAI');
+      console.error('OpenAI API status:', completion.status);
+      console.error('OpenAI API statusText:', completion.statusText);
+      throw new Error(`Erro ao chamar OpenAI API: ${completion.status} - ${completion.statusText}`);
     }
 
     const response = await completion.json();
