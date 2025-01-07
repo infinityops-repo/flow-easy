@@ -85,4 +85,4 @@ export const validateN8nWorkflow = (workflow: any) => {
   if (!hasConnections) {
     throw new Error('Workflow n8n inválido: deve ter pelo menos uma conexão entre nodes');
   }
-});
+};
