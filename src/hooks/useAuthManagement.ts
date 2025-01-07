@@ -11,6 +11,33 @@ export const useAuthManagement = () => {
     const fetchUserProfile = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          console.log('No active session found');
+          return;
+        }
+
+        // Try to refresh the session if it's close to expiring
+        if (session.expires_at) {
+          const expiresAt = new Date(session.expires_at * 1000);
+          const now = new Date();
+          const fiveMinutes = 5 * 60 * 1000;
+          
+          if (expiresAt.getTime() - now.getTime() < fiveMinutes) {
+            const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              console.error('Error refreshing session:', refreshError);
+              handleSignOut();
+              return;
+            }
+            if (!newSession) {
+              console.log('Session refresh failed');
+              handleSignOut();
+              return;
+            }
+          }
+        }
+
         if (session?.user) {
           const { data: profile, error } = await supabase
             .from('profiles')
@@ -20,6 +47,10 @@ export const useAuthManagement = () => {
 
           if (error) {
             console.error('Error fetching profile:', error);
+            if (error.code === 'PGRST301') {
+              console.log('Session expired, signing out');
+              handleSignOut();
+            }
             return;
           }
 
@@ -33,34 +64,27 @@ export const useAuthManagement = () => {
     };
 
     fetchUserProfile();
-  }, []);
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        fetchUserProfile();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const handleSignOut = async () => {
     try {
-      // First clear all local storage data
       localStorage.clear();
       
-      // Get current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Error getting session:', sessionError);
-        navigate('/auth');
-        return;
-      }
-
-      if (!session) {
-        // If no session exists, just redirect
-        navigate('/auth');
-        return;
-      }
-
-      // Attempt to sign out
       const { error } = await supabase.auth.signOut();
 
       if (error) {
         console.error('Error during sign out:', error);
-        // If session not found, just redirect
         if (error.message.includes('session_not_found')) {
           navigate('/auth');
           return;
@@ -72,7 +96,6 @@ export const useAuthManagement = () => {
       }
     } catch (error) {
       console.error('Error during sign out:', error);
-      // In case of any error, clear storage and redirect
       localStorage.clear();
       navigate('/auth');
     }
