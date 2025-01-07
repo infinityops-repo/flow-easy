@@ -80,26 +80,23 @@ serve(async (req) => {
       const content = response.choices[0].message.content.trim();
       console.log('Raw OpenAI response:', content);
       
-      // Extrai o JSON do bloco de código markdown
+      // Remove os blocos de código markdown se existirem
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
-      const jsonString = jsonMatch ? jsonMatch[1].trim() : content;
+      workflow = jsonMatch ? jsonMatch[1].trim() : content;
       
-      try {
-        workflow = parse(jsonString);
-      } catch (parseError) {
-        console.error('First parse attempt failed:', parseError);
-        // Se falhar, tenta limpar o JSON e tentar novamente
-        const cleanJson = jsonString
-          .replace(/\n\s*/g, ' ')
-          .replace(/=\{\{/g, '{{')
-          .replace(/\}\}/g, '}}')
-          .trim();
-        workflow = parse(cleanJson);
-      }
-      
-      console.log('Parsed workflow:', workflow);
+      // Retorna o workflow como string, deixando o parsing para o cliente
+      return new Response(
+        JSON.stringify({ 
+          workflow,
+          shareableUrl: null
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
     } catch (e) {
-      console.error('JSON parse error:', e);
+      console.error('Error:', e);
       console.error('Raw content:', response.choices[0].message.content);
       throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
     }
