@@ -229,6 +229,25 @@ serve(async (req) => {
             nodesCount: parsedWorkflow.nodes.length,
             connectionsCount: Object.keys(parsedWorkflow.connections).length
           });
+          
+          console.log('==================== VERIFICAÇÃO PÓS-SALVAMENTO ====================');
+          const { data: savedWorkflow, error: checkError } = await supabase
+            .from('workflow_cache')
+            .select('*')
+            .eq('prompt', prompt)
+            .eq('platform', platform)
+            .single();
+
+          if (checkError) {
+            console.error('Erro ao verificar workflow salvo:', checkError);
+          } else {
+            console.log('Workflow encontrado após salvamento:', {
+              id: savedWorkflow.id,
+              prompt: savedWorkflow.prompt,
+              platform: savedWorkflow.platform,
+              workflowSize: JSON.stringify(savedWorkflow.workflow).length
+            });
+          }
         }
 
         console.log('==================== CACHE ATUALIZADO ====================');
