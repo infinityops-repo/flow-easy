@@ -81,18 +81,17 @@ const Index = () => {
         throw new Error('Usuário não autenticado');
       }
 
-      // Parse o workflow se for uma string
-      const parsedWorkflow = typeof workflow === 'string' ? JSON.parse(workflow) : workflow;
-
       const newProject = {
         user_id: session.user.id,
         title: `${platform}-workflow-${projects.length + 1}`,
         image: "/placeholder.svg",
         prompt,
         platform,
-        workflow: parsedWorkflow,
+        workflow: workflow,
         is_private: true
       };
+
+      console.log('Salvando projeto:', newProject);
 
       const { data, error } = await supabase
         .from('projects')
@@ -104,6 +103,8 @@ const Index = () => {
         console.error('Erro detalhado:', error);
         throw error;
       }
+
+      console.log('Projeto salvo:', data);
 
       const formattedProject: Project = {
         id: data.id,
