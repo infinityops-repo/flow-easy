@@ -3,7 +3,7 @@ import { HeartLogo } from '@/components/HeartLogo';
 import { WorkflowInput } from '@/components/WorkflowInput';
 import { NavigationTabs } from '@/components/NavigationTabs';
 import MainNav from '@/components/MainNav';
-import ProjectCard from '@/components/ProjectCard';
+import { ProjectCard } from '@/components/ProjectCard';
 import { PricingSection } from '@/components/PricingSection';
 import { FAQSection } from '@/components/FAQSection';
 import { Footer } from '@/components/Footer';
@@ -12,13 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Project {
   id: string;
-  title: string;
-  image: string;
-  editedTime: string;
-  isPrivate: boolean;
-  prompt?: string;
-  platform?: string;
-  workflow?: any;
+  name: string;
+  description: string;
+  workflow: any;
+  platform: string;
+  user_id: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const Index = () => {
@@ -46,18 +46,7 @@ const Index = () => {
 
         if (error) throw error;
 
-        const formattedProjects = data.map(project => ({
-          id: project.id,
-          title: project.title,
-          image: project.image,
-          editedTime: new Date(project.updated_at).toLocaleString(),
-          isPrivate: project.is_private,
-          prompt: project.prompt,
-          platform: project.platform,
-          workflow: project.workflow
-        }));
-
-        setProjects(formattedProjects);
+        setProjects(data);
       } catch (error) {
         console.error('Erro ao carregar projetos:', error);
         toast({
@@ -148,7 +137,7 @@ const Index = () => {
   };
 
   const handleReuseProject = (project: Project) => {
-    if (project.prompt && project.platform) {
+    if (project.description && project.platform) {
       // Aqui vamos passar os dados do projeto para o WorkflowInput
       // Implementaremos essa funcionalidade no próximo passo
     }
@@ -179,18 +168,18 @@ const Index = () => {
     }
   };
 
-  const handleRenameProject = async (projectId: string, newTitle: string) => {
+  const handleRenameProject = async (projectId: string, newName: string) => {
     try {
       const { error } = await supabase
         .from('projects')
-        .update({ title: newTitle })
+        .update({ name: newName })
         .eq('id', projectId);
 
       if (error) throw error;
 
       setProjects(projects.map(project => 
         project.id === projectId 
-          ? { ...project, title: newTitle } 
+          ? { ...project, name: newName } 
           : project
       ));
 
@@ -252,15 +241,16 @@ const Index = () => {
               {getProjectsForTab().map((project) => (
                 <ProjectCard
                   key={project.id}
-                  title={project.title}
-                  image={project.image}
-                  editedTime={project.editedTime}
-                  isPrivate={project.isPrivate}
-                  prompt={project.prompt}
+                  id={project.id}
+                  name={project.name}
+                  description={project.description}
                   platform={project.platform}
+                  created_at={project.created_at}
+                  updated_at={project.updated_at}
+                  workflow={project.workflow}
                   onReuse={() => handleReuseProject(project)}
                   onDelete={() => handleDeleteProject(project.id)}
-                  onRename={(newTitle) => handleRenameProject(project.id, newTitle)}
+                  onRename={(newName) => handleRenameProject(project.id, newName)}
                 />
               ))}
             </div>
