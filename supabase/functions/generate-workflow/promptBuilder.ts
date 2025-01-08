@@ -203,83 +203,66 @@ Respond ONLY with the JSON scenario, no explanations.`;
 };
 
 export function buildN8nPrompt() {
-  return `You are a workflow generator for n8n. Create workflows in valid JSON format following these STRICT rules:
+  return `You are an expert n8n workflow generator. Follow this EXACT format for the workflow JSON:
 
-1. Node Structure:
-   Each node MUST have these EXACT fields:
-   - id: string (sequential number as string, e.g., "1", "2", "3")
-   - name: string (descriptive name in Portuguese)
-   - type: string (e.g., "n8n-nodes-base.httpRequest")
-   - typeVersion: number (usually 1)
-   - position: [number, number]
-   - parameters: object (specific to each node type)
+{
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Obter Cotação do Dólar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [300, 200],
+      "parameters": {
+        "url": "https://api.exchangerate-api.com/v4/latest/USD",
+        "responseFormat": "json"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Enviar para Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [600, 100],
+      "parameters": {
+        "chatId": "SEU_CHAT_ID",
+        "text": "Cotação do dólar: {{ $json.rates.BRL }} BRL"
+      }
+    }
+  ],
+  "connections": {
+    "Obter Cotação do Dólar": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
 
-2. Template Expressions:
-   - Use EXACTLY this format: {{ $json.property.nested }}
-   - DO NOT include $node references, use $json directly
-   - NO equal sign (=) prefix needed
-   - Example: "text": "Cotação do dólar: {{ $json.rates.BRL }} BRL"
+STRICT RULES:
+1. Follow the EXACT same structure as the example above
+2. Each node MUST have: id, name, type, typeVersion, position, parameters
+3. Use sequential numbers as strings for id ("1", "2", "3", etc.)
+4. Use meaningful names in Portuguese
+5. Position nodes with good spacing (at least 200-300 pixels apart)
+6. Template expressions use format: {{ $json.field }}
+7. Connections must link nodes exactly as shown in the example
+8. DO NOT add any fields not shown in the example
 
-3. Node Types and Parameters:
-   HTTP Request node:
-   {
-     "id": "1",
-     "name": "Obter Cotação do Dólar",
-     "type": "n8n-nodes-base.httpRequest",
-     "typeVersion": 1,
-     "position": [300, 200],
-     "parameters": {
-       "url": "https://api.exchangerate-api.com/v4/latest/USD",
-       "responseFormat": "json"
-     }
-   }
+Common Node Types:
+- HTTP/API: "n8n-nodes-base.httpRequest"
+- Messaging: "n8n-nodes-base.telegram", "n8n-nodes-base.discord", "n8n-nodes-base.slack"
+- Email: "n8n-nodes-base.emailSend", "n8n-nodes-base.gmail"
+- Database: "n8n-nodes-base.postgres", "n8n-nodes-base.mysql"
+- Files: "n8n-nodes-base.ftp", "n8n-nodes-base.s3"
+- Utilities: "n8n-nodes-base.set", "n8n-nodes-base.function"
+- Triggers: "n8n-nodes-base.webhook", "n8n-nodes-base.cron"
 
-   Telegram node:
-   {
-     "id": "2",
-     "name": "Enviar para Telegram",
-     "type": "n8n-nodes-base.telegram",
-     "typeVersion": 1,
-     "position": [600, 100],
-     "parameters": {
-       "chatId": "SEU_CHAT_ID",
-       "text": "Cotação do dólar: {{ $json.rates.BRL }} BRL"
-     }
-   }
-
-   Discord node:
-   {
-     "id": "3",
-     "name": "Enviar para Discord",
-     "type": "n8n-nodes-base.discord",
-     "typeVersion": 1,
-     "position": [600, 300],
-     "parameters": {
-       "webhookUri": "SEU_WEBHOOK_DISCORD",
-       "message": "Cotação do dólar: {{ $json.rates.BRL }} BRL"
-     }
-   }
-
-4. Connections Structure:
-   Use this EXACT format:
-   {
-     "Node Name": {
-       "main": [
-         [
-           {
-             "node": "Target Node Name",
-             "type": "main",
-             "index": 0
-           }
-         ]
-       ]
-     }
-   }
-
-The workflow should contain ONLY:
-1. nodes array
-2. connections object
-
-DO NOT include any settings object or additional fields.
-Return ONLY the JSON workflow without any markdown formatting or explanations.`;
+Return ONLY the complete JSON workflow without any markdown or explanations.`;
 }
