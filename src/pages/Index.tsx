@@ -75,15 +75,31 @@ const Index = () => {
 
   const handleWorkflowGenerated = async (workflow: any, prompt: string, platform: string) => {
     try {
+      console.log('==================== INÍCIO DO PROCESSO ====================');
+      console.log('Parâmetros recebidos:', {
+        workflow: JSON.stringify(workflow, null, 2),
+        prompt,
+        platform
+      });
+
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Dados da sessão:', {
+        userId: session?.user?.id,
+        email: session?.user?.email,
+        authenticated: !!session?.access_token
+      });
       
       if (!session?.access_token) {
+        console.error('Erro: Usuário não autenticado');
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('Workflow recebido:', workflow);
+      console.log('==================== WORKFLOW RECEBIDO ====================');
       console.log('Tipo do workflow:', typeof workflow);
-      console.log('Estrutura do workflow:', JSON.stringify(workflow, null, 2));
+      console.log('É array?', Array.isArray(workflow));
+      console.log('É objeto?', workflow !== null && typeof workflow === 'object');
+      console.log('Chaves do workflow:', Object.keys(workflow));
+      console.log('Workflow completo:', JSON.stringify(workflow, null, 2));
 
       const newProject = {
         user_id: session.user.id,
@@ -95,9 +111,17 @@ const Index = () => {
         is_private: true
       };
 
-      console.log('Projeto a ser salvo:', JSON.stringify(newProject, null, 2));
+      console.log('==================== PROJETO A SER SALVO ====================');
+      console.log('Tipo do workflow no projeto:', typeof newProject.workflow);
+      console.log('É array?', Array.isArray(newProject.workflow));
+      console.log('É objeto?', newProject.workflow !== null && typeof newProject.workflow === 'object');
+      console.log('Chaves do workflow no projeto:', Object.keys(newProject.workflow));
+      console.log('Projeto completo:', JSON.stringify(newProject, null, 2));
 
       try {
+        console.log('==================== SALVANDO NO SUPABASE ====================');
+        console.log('Iniciando operação de insert...');
+        
         const { data, error } = await supabase
           .from('projects')
           .insert([newProject])
@@ -105,15 +129,18 @@ const Index = () => {
           .single();
 
         if (error) {
-          console.error('Erro detalhado:', error);
-          console.error('Código do erro:', error.code);
-          console.error('Mensagem do erro:', error.message);
-          console.error('Detalhes do erro:', error.details);
-          console.error('Hint do erro:', error.hint);
+          console.error('==================== ERRO NO SUPABASE ====================');
+          console.error('Erro completo:', error);
+          console.error('Código:', error.code);
+          console.error('Mensagem:', error.message);
+          console.error('Detalhes:', error.details);
+          console.error('Hint:', error.hint);
+          console.error('Projeto que causou erro:', JSON.stringify(newProject, null, 2));
           throw error;
         }
 
-        console.log('Resposta do Supabase após salvar:', JSON.stringify(data, null, 2));
+        console.log('==================== SUCESSO NO SALVAMENTO ====================');
+        console.log('Dados retornados pelo Supabase:', JSON.stringify(data, null, 2));
 
         const formattedProject: Project = {
           id: data.id,
@@ -126,15 +153,28 @@ const Index = () => {
           workflow: data.workflow
         };
 
+        console.log('==================== PROJETO FORMATADO ====================');
+        console.log('Projeto após formatação:', JSON.stringify(formattedProject, null, 2));
+
+        console.log('==================== ATUALIZANDO ESTADO ====================');
+        console.log('Projetos existentes:', projects.length);
         setProjects([formattedProject, ...projects]);
         setActiveTab('my-projects');
+        console.log('Estado atualizado com sucesso');
+
+        console.log('==================== PROCESSO FINALIZADO ====================');
+        console.log('Workflow salvo e estado atualizado com sucesso');
 
         toast({
           title: "Sucesso",
           description: "Projeto salvo com sucesso!",
         });
       } catch (error) {
-        console.error('Erro ao salvar projeto:', error);
+        console.error('==================== ERRO AO SALVAR ====================');
+        console.error('Erro completo:', error);
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+        console.error('Projeto que causou erro:', JSON.stringify(newProject, null, 2));
+        
         toast({
           title: "Erro",
           description: "Não foi possível salvar o projeto. Por favor, tente novamente.",
@@ -142,10 +182,14 @@ const Index = () => {
         });
       }
     } catch (error) {
-      console.error('Erro ao salvar projeto:', error);
+      console.error('==================== ERRO GERAL ====================');
+      console.error('Erro completo:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Parâmetros recebidos:', { workflow, prompt, platform });
+      
       toast({
         title: "Erro",
-        description: "Não foi possível salvar o projeto. Por favor, tente novamente.",
+        description: "Erro ao processar o workflow. Por favor, tente novamente.",
         variant: "destructive",
       });
     }
