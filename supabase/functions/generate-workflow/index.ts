@@ -84,13 +84,9 @@ serve(async (req) => {
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const rawWorkflow = jsonMatch ? jsonMatch[1].trim() : content;
 
-      // Substitui as aspas duplas dentro das expressões de template por aspas simples
-      const cleanedWorkflow = rawWorkflow.replace(/\{\{\s*\$node\["([^"]+)"\]\.json\["([^"]+)"\]\s*\}\}/g, 
-        (match, node, prop) => `{{ $node['${node}'].json['${prop}'] }}`);
-
       try {
         // Valida o JSON
-        const parsedWorkflow = JSON.parse(cleanedWorkflow);
+        const parsedWorkflow = JSON.parse(rawWorkflow);
         
         // Valida o workflow baseado na plataforma
         if (platform === 'make') {
@@ -100,7 +96,7 @@ serve(async (req) => {
         }
 
         // Se chegou aqui, o workflow é válido
-        workflow = cleanedWorkflow;
+        workflow = JSON.stringify(parsedWorkflow, null, 2);
       } catch (parseError) {
         console.error('Parse/Validation error:', parseError);
         throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
