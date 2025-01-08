@@ -28,6 +28,7 @@ const Index = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [latestProjects, setLatestProjects] = useState<Project[]>([]);
 
   // Carrega os projetos do usuário
   useEffect(() => {
@@ -63,6 +64,35 @@ const Index = () => {
 
     loadProjects();
   }, [toast]);
+
+  // Carrega os projetos mais recentes
+  useEffect(() => {
+    const loadLatestProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('is_private', false)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+
+        setLatestProjects(data || []);
+      } catch (error) {
+        console.error('Erro ao carregar projetos recentes:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os projetos recentes. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (activeTab === 'latest') {
+      loadLatestProjects();
+    }
+  }, [activeTab, toast]);
 
   const handleWorkflowGenerated = async (workflow: any, prompt: string, platform: string) => {
     console.log('==================== INICIANDO SALVAMENTO DO WORKFLOW ====================');
@@ -334,7 +364,7 @@ const Index = () => {
       case 'my-projects':
         return projects;
       case 'latest':
-        return [];
+        return latestProjects;
       case 'featured':
         return [];
       case 'templates':
