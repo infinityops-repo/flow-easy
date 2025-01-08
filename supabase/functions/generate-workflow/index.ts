@@ -4,8 +4,13 @@ import { parse } from "https://deno.land/x/json5@v1.0.0/mod.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { validateMakeWorkflow, validateN8nWorkflow } from "./workflowValidator.ts";
 import { buildMakePrompt, buildN8nPrompt } from "./promptBuilder.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const openAiApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,6 +29,34 @@ serve(async (req) => {
       throw new Error('Plataforma inválida');
     }
 
+    // Verifica se existe no cache
+    const { data: cachedWorkflow, error: cacheError } = await supabase
+      .from('workflow_cache')
+      .select('workflow')
+      .eq('prompt', prompt)
+      .eq('platform', platform)
+      .single();
+
+    if (cacheError && cacheError.code !== 'PGRST116') {
+      console.error('Erro ao verificar cache:', cacheError);
+    }
+
+    if (cachedWorkflow) {
+      console.log('Cache hit! Retornando workflow do cache');
+      return new Response(
+        JSON.stringify({ 
+          workflow: cachedWorkflow.workflow,
+          shareableUrl: null,
+          fromCache: true
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    }
+
+    console.log('Cache miss. Gerando novo workflow...');
     const systemPrompt = platform === 'make' ? buildMakePrompt() : buildN8nPrompt();
     
     console.log('Sending request to OpenAI...');
@@ -95,6 +128,21 @@ serve(async (req) => {
           validateN8nWorkflow(parsedWorkflow);
         }
 
+        // Salva no cache
+        const { error: insertError } = await supabase
+          .from('workflow_cache')
+          .insert([{
+            prompt,
+            platform,
+            workflow: parsedWorkflow
+          }]);
+
+        if (insertError) {
+          console.error('Erro ao salvar no cache:', insertError);
+        } else {
+          console.log('Workflow salvo no cache com sucesso');
+        }
+
         // Retorna o workflow validado
         workflow = rawWorkflow;
       } catch (parseError) {
@@ -105,7 +153,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           workflow,
-          shareableUrl: null
+          shareableUrl: null,
+          fromCache: false
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
