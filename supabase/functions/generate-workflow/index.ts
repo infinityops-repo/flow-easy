@@ -132,6 +132,7 @@ serve(async (req) => {
 
         // Garante que o workflow está em formato de string JSON válido
         const formattedWorkflow = JSON.stringify(parsedWorkflow);
+        console.log('Workflow formatado:', formattedWorkflow);
 
         // Salva no cache
         const { error: insertError } = await supabase
@@ -139,20 +140,20 @@ serve(async (req) => {
           .insert([{
             prompt,
             platform,
-            workflow: formattedWorkflow
+            workflow: parsedWorkflow // Salva o objeto original no cache
           }]);
 
         if (insertError) {
           console.error('Erro ao salvar no cache:', insertError);
         } else {
           console.log('Workflow salvo no cache com sucesso');
-          console.log('Workflow salvo:', formattedWorkflow);
+          console.log('Workflow salvo:', parsedWorkflow);
         }
 
-        // Retorna o workflow validado
+        // Retorna o workflow validado como objeto
         return new Response(
           JSON.stringify({ 
-            workflow: formattedWorkflow,
+            workflow: parsedWorkflow, // Retorna o objeto original
             shareableUrl: null,
             fromCache: false
           }),

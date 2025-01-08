@@ -84,16 +84,13 @@ const Index = () => {
       console.log('Workflow recebido:', workflow);
       console.log('Tipo do workflow:', typeof workflow);
 
-      // Garante que o workflow está em formato string
-      const workflowString = typeof workflow === 'string' ? workflow : JSON.stringify(workflow);
-
       const newProject = {
         user_id: session.user.id,
         title: `${platform}-workflow-${projects.length + 1}`,
         image: "/placeholder.svg",
         prompt,
         platform,
-        workflow: workflowString,
+        workflow,
         is_private: true
       };
 
@@ -125,7 +122,7 @@ const Index = () => {
         isPrivate: data.is_private,
         prompt: data.prompt,
         platform: data.platform,
-        workflow: typeof data.workflow === 'string' ? JSON.parse(data.workflow) : data.workflow
+        workflow: data.workflow
       };
 
       setProjects([formattedProject, ...projects]);
