@@ -83,6 +83,7 @@ const Index = () => {
 
       console.log('Workflow recebido:', workflow);
       console.log('Tipo do workflow:', typeof workflow);
+      console.log('Estrutura do workflow:', JSON.stringify(workflow, null, 2));
 
       const newProject = {
         user_id: session.user.id,
@@ -94,44 +95,52 @@ const Index = () => {
         is_private: true
       };
 
-      console.log('Projeto a ser salvo:', newProject);
-      console.log('Tipo do workflow no projeto:', typeof newProject.workflow);
+      console.log('Projeto a ser salvo:', JSON.stringify(newProject, null, 2));
 
-      const { data, error } = await supabase
-        .from('projects')
-        .insert([newProject])
-        .select()
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .insert([newProject])
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Erro detalhado:', error);
-        console.error('Código do erro:', error.code);
-        console.error('Mensagem do erro:', error.message);
-        console.error('Detalhes do erro:', error.details);
-        throw error;
+        if (error) {
+          console.error('Erro detalhado:', error);
+          console.error('Código do erro:', error.code);
+          console.error('Mensagem do erro:', error.message);
+          console.error('Detalhes do erro:', error.details);
+          console.error('Hint do erro:', error.hint);
+          throw error;
+        }
+
+        console.log('Resposta do Supabase após salvar:', JSON.stringify(data, null, 2));
+
+        const formattedProject: Project = {
+          id: data.id,
+          title: data.title,
+          image: data.image,
+          editedTime: new Date(data.updated_at).toLocaleString(),
+          isPrivate: data.is_private,
+          prompt: data.prompt,
+          platform: data.platform,
+          workflow: data.workflow
+        };
+
+        setProjects([formattedProject, ...projects]);
+        setActiveTab('my-projects');
+
+        toast({
+          title: "Sucesso",
+          description: "Projeto salvo com sucesso!",
+        });
+      } catch (error) {
+        console.error('Erro ao salvar projeto:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar o projeto. Por favor, tente novamente.",
+          variant: "destructive",
+        });
       }
-
-      console.log('Resposta do Supabase:', data);
-      console.log('Tipo do workflow retornado:', typeof data.workflow);
-
-      const formattedProject: Project = {
-        id: data.id,
-        title: data.title,
-        image: data.image,
-        editedTime: new Date(data.updated_at).toLocaleString(),
-        isPrivate: data.is_private,
-        prompt: data.prompt,
-        platform: data.platform,
-        workflow: data.workflow
-      };
-
-      setProjects([formattedProject, ...projects]);
-      setActiveTab('my-projects');
-
-      toast({
-        title: "Sucesso",
-        description: "Projeto salvo com sucesso!",
-      });
     } catch (error) {
       console.error('Erro ao salvar projeto:', error);
       toast({
