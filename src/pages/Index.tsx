@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { HeartLogo } from '@/components/HeartLogo';
 import { WorkflowInput } from '@/components/WorkflowInput';
-import { QuickAccess } from '@/components/QuickAccess';
 import { NavigationTabs } from '@/components/NavigationTabs';
 import MainNav from '@/components/MainNav';
 import ProjectCard from '@/components/ProjectCard';
@@ -86,7 +85,6 @@ const Index = () => {
           </div>
 
           <WorkflowInput />
-          <QuickAccess />
           
           <div className="mt-8 md:mt-16 w-full">
             <NavigationTabs activeTab={activeTab} onTabChange={setActiveTab} />
