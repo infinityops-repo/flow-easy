@@ -22,6 +22,31 @@ serve(async (req) => {
     console.log('==================== INICIANDO GERAÇÃO DO WORKFLOW ====================');
     console.log('Request recebida:', { prompt, platform });
 
+    // Obtém o token de autenticação
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Token de autorização não encontrado');
+      throw new Error('Usuário não autenticado');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Cria um novo cliente Supabase com o token do usuário
+    const userSupabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    });
+
+    // Verifica se o usuário está autenticado
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+    if (userError || !user?.id) {
+      console.error('Erro ao obter usuário:', userError);
+      throw new Error('Usuário não autenticado');
+    }
+
     if (!prompt) {
       throw new Error('Prompt é obrigatório');
     }
@@ -202,21 +227,7 @@ serve(async (req) => {
         }
 
         console.log('==================== SALVANDO NO PROJECTS ====================');
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-          console.error('Token de autorização não encontrado');
-          throw new Error('Usuário não autenticado');
-        }
-
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-        if (userError || !user?.id) {
-          console.error('Erro ao obter usuário:', userError);
-          throw new Error('Usuário não autenticado');
-        }
-
-        const { error: projectError } = await supabase
+        const { error: projectError } = await userSupabase
           .from('projects')
           .insert([{
             user_id: user.id,
@@ -230,6 +241,7 @@ serve(async (req) => {
 
         if (projectError) {
           console.error('Erro ao salvar no projects:', projectError);
+          throw projectError;
         } else {
           console.log('Workflow salvo no projects com sucesso');
         }
