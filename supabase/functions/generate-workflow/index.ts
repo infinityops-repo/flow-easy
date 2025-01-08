@@ -143,28 +143,25 @@ serve(async (req) => {
           console.error('Erro ao salvar no cache:', insertError);
         } else {
           console.log('Workflow salvo no cache com sucesso');
-          console.log('Tipo do workflow salvo:', typeof parsedWorkflow);
           console.log('Workflow salvo:', parsedWorkflow);
         }
 
         // Retorna o workflow validado
-        workflow = parsedWorkflow;
+        return new Response(
+          JSON.stringify({ 
+            workflow: parsedWorkflow,
+            shareableUrl: null,
+            fromCache: false
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        );
       } catch (parseError) {
         console.error('Parse/Validation error:', parseError);
         throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
       }
-      
-      return new Response(
-        JSON.stringify({ 
-          workflow,
-          shareableUrl: null,
-          fromCache: false
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      );
     } catch (e) {
       console.error('Error:', e);
       console.error('Raw content:', response.choices[0].message.content);
