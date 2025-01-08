@@ -118,10 +118,12 @@ serve(async (req) => {
       // Remove os blocos de código markdown se existirem
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const rawWorkflow = jsonMatch ? jsonMatch[1].trim() : content;
+      console.log('Workflow após remover markdown:', rawWorkflow);
 
       try {
         // Valida o JSON
         const parsedWorkflow = JSON.parse(rawWorkflow);
+        console.log('Workflow após parse:', JSON.stringify(parsedWorkflow, null, 2));
         
         // Valida o workflow baseado na plataforma
         if (platform === 'make') {
@@ -129,6 +131,7 @@ serve(async (req) => {
         } else {
           validateN8nWorkflow(parsedWorkflow);
         }
+        console.log('Workflow validado com sucesso');
 
         // Garante que as conexões estão completas (sem [Object])
         if (parsedWorkflow.connections) {
@@ -150,6 +153,7 @@ serve(async (req) => {
             }
           });
         }
+        console.log('Conexões processadas:', JSON.stringify(parsedWorkflow.connections, null, 2));
 
         // Salva no cache
         const { error: insertError } = await supabase
@@ -162,14 +166,26 @@ serve(async (req) => {
 
         if (insertError) {
           console.error('Erro ao salvar no cache:', insertError);
+          console.error('Detalhes do erro:', {
+            code: insertError.code,
+            message: insertError.message,
+            details: insertError.details,
+            hint: insertError.hint
+          });
+        } else {
+          console.log('Workflow salvo no cache com sucesso');
         }
 
+        // Prepara a resposta
+        const response = {
+          workflow: parsedWorkflow,
+          shareableUrl: null,
+          fromCache: false
+        };
+        console.log('Resposta final:', JSON.stringify(response, null, 2));
+
         return new Response(
-          JSON.stringify({ 
-            workflow: parsedWorkflow,
-            shareableUrl: null,
-            fromCache: false
-          }),
+          JSON.stringify(response),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
