@@ -80,13 +80,16 @@ const Index = () => {
         throw new Error('Usuário não autenticado');
       }
 
+      // Parse o workflow se for uma string
+      const parsedWorkflow = typeof workflow === 'string' ? JSON.parse(workflow) : workflow;
+
       const newProject = {
         user_id: session.user.id,
         title: `${platform}-workflow-${projects.length + 1}`,
         image: "/placeholder.svg",
         prompt,
         platform,
-        workflow,
+        workflow: parsedWorkflow,
         is_private: true
       };
 
