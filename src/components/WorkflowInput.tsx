@@ -8,7 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { QuickAccess } from './QuickAccess';
 
-export const WorkflowInput = () => {
+interface WorkflowInputProps {
+  onWorkflowGenerated?: (workflow: any, prompt: string, platform: string) => void;
+}
+
+export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
   const [platform, setPlatform] = useState<string>('n8n');
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -16,11 +20,6 @@ export const WorkflowInput = () => {
   const [shareableUrl, setShareableUrl] = useState<string | null>(null);
   const [showWorkflow, setShowWorkflow] = useState(false);
   const { toast } = useToast();
-
-  const handleTemplateSelect = (template: any) => {
-    setPrompt(template.prompt);
-    setPlatform(template.platform);
-  };
 
   const handleGenerateWorkflow = async () => {
     if (!prompt.trim()) {
@@ -57,6 +56,11 @@ export const WorkflowInput = () => {
       setShareableUrl(data.shareableUrl);
       setShowWorkflow(true);
       
+      // Notifica o componente pai sobre o novo workflow
+      if (onWorkflowGenerated) {
+        onWorkflowGenerated(parsedWorkflow, prompt, platform);
+      }
+
       toast({
         title: "Sucesso",
         description: `Workflow ${platform === 'make' ? 'Make' : 'n8n'} gerado com sucesso!`,
@@ -72,6 +76,11 @@ export const WorkflowInput = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTemplateSelect = (template: any) => {
+    setPrompt(template.prompt);
+    setPlatform(template.platform);
   };
 
   const handleCopyJson = () => {

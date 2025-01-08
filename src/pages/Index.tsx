@@ -8,20 +8,16 @@ import { PricingSection } from '@/components/PricingSection';
 import { FAQSection } from '@/components/FAQSection';
 import { Footer } from '@/components/Footer';
 
-const projectsData = [
-  {
-    title: "workflow-magic-creator",
-    image: "/lovable-uploads/2be9b7d8-3454-4224-819a-b88e10b73602.png",
-    editedTime: "2 minutes ago",
-    isPrivate: true
-  },
-  {
-    title: "tunnelr",
-    image: "/placeholder.svg",
-    editedTime: "3 days ago",
-    isPrivate: true
-  }
-];
+interface Project {
+  id: string;
+  title: string;
+  image: string;
+  editedTime: string;
+  isPrivate: boolean;
+  prompt?: string;
+  platform?: string;
+  workflow?: any;
+}
 
 const latestProjects = [
   {
@@ -52,11 +48,54 @@ const templateProjects = [
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('my-projects');
+  const [projects, setProjects] = useState<Project[]>([
+    {
+      id: '1',
+      title: "workflow-magic-creator",
+      image: "/lovable-uploads/2be9b7d8-3454-4224-819a-b88e10b73602.png",
+      editedTime: "2 minutes ago",
+      isPrivate: true
+    },
+    {
+      id: '2',
+      title: "tunnelr",
+      image: "/placeholder.svg",
+      editedTime: "3 days ago",
+      isPrivate: true
+    }
+  ]);
+
+  const handleWorkflowGenerated = (workflow: any, prompt: string, platform: string) => {
+    const newProject: Project = {
+      id: Date.now().toString(),
+      title: `${platform}-workflow-${projects.length + 1}`,
+      image: "/placeholder.svg",
+      editedTime: "agora mesmo",
+      isPrivate: true,
+      prompt,
+      platform,
+      workflow
+    };
+
+    setProjects([newProject, ...projects]);
+    setActiveTab('my-projects');
+  };
+
+  const handleReuseProject = (project: Project) => {
+    if (project.prompt && project.platform) {
+      // Aqui vamos passar os dados do projeto para o WorkflowInput
+      // Implementaremos essa funcionalidade no próximo passo
+    }
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    setProjects(projects.filter(p => p.id !== projectId));
+  };
 
   const getProjectsForTab = () => {
     switch (activeTab) {
       case 'my-projects':
-        return projectsData;
+        return projects;
       case 'latest':
         return latestProjects;
       case 'featured':
@@ -64,7 +103,7 @@ const Index = () => {
       case 'templates':
         return templateProjects;
       default:
-        return projectsData;
+        return projects;
     }
   };
 
@@ -84,19 +123,23 @@ const Index = () => {
             </p>
           </div>
 
-          <WorkflowInput />
+          <WorkflowInput onWorkflowGenerated={handleWorkflowGenerated} />
           
           <div className="mt-8 md:mt-16 w-full">
             <NavigationTabs activeTab={activeTab} onTabChange={setActiveTab} />
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-8 px-4 max-w-7xl mx-auto">
-              {getProjectsForTab().map((project, index) => (
+              {getProjectsForTab().map((project) => (
                 <ProjectCard
-                  key={index}
+                  key={project.id}
                   title={project.title}
                   image={project.image}
                   editedTime={project.editedTime}
                   isPrivate={project.isPrivate}
+                  prompt={project.prompt}
+                  platform={project.platform}
+                  onReuse={() => handleReuseProject(project)}
+                  onDelete={() => handleDeleteProject(project.id)}
                 />
               ))}
             </div>
