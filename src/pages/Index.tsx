@@ -92,6 +92,14 @@ const Index = () => {
     setProjects(projects.filter(p => p.id !== projectId));
   };
 
+  const handleRenameProject = (projectId: string, newTitle: string) => {
+    setProjects(projects.map(project => 
+      project.id === projectId 
+        ? { ...project, title: newTitle } 
+        : project
+    ));
+  };
+
   const getProjectsForTab = () => {
     switch (activeTab) {
       case 'my-projects':
@@ -140,6 +148,7 @@ const Index = () => {
                   platform={project.platform}
                   onReuse={() => handleReuseProject(project)}
                   onDelete={() => handleDeleteProject(project.id)}
+                  onRename={(newTitle) => handleRenameProject(project.id, newTitle)}
                 />
               ))}
             </div>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Lock, Trash2, RefreshCw } from 'lucide-react';
+import { Lock, Trash2, RefreshCw, Pencil } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface ProjectCardProps {
   title: string;
@@ -10,6 +11,7 @@ interface ProjectCardProps {
   isPrivate?: boolean;
   onReuse?: () => void;
   onDelete?: () => void;
+  onRename?: (newTitle: string) => void;
   prompt?: string;
   platform?: string;
 }
@@ -21,9 +23,29 @@ const ProjectCard = ({
   isPrivate,
   onReuse,
   onDelete,
+  onRename,
   prompt,
   platform 
 }: ProjectCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [newTitle, setNewTitle] = useState(title);
+
+  const handleRename = () => {
+    if (onRename && newTitle.trim() !== '') {
+      onRename(newTitle);
+      setIsEditing(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleRename();
+    } else if (e.key === 'Escape') {
+      setNewTitle(title);
+      setIsEditing(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden group cursor-pointer transition-all hover:ring-2 hover:ring-primary/50">
       <CardContent className="p-0">
@@ -48,6 +70,20 @@ const ProjectCard = ({
                 Reutilizar
               </Button>
             )}
+            {onRename && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Renomear
+              </Button>
+            )}
             {onDelete && (
               <Button
                 variant="destructive"
@@ -66,7 +102,21 @@ const ProjectCard = ({
         </div>
         <div className="p-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">{title}</h3>
+            {isEditing ? (
+              <div className="flex-1 mr-2">
+                <Input
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  onBlur={handleRename}
+                  autoFocus
+                  className="text-lg font-medium"
+                  placeholder="Digite o novo título..."
+                />
+              </div>
+            ) : (
+              <h3 className="text-lg font-medium">{title}</h3>
+            )}
             {isPrivate && <Lock className="h-4 w-4 text-muted-foreground" />}
           </div>
           <p className="text-sm text-muted-foreground mt-1">Editado {editedTime}</p>
