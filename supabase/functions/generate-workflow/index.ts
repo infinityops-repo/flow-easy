@@ -228,26 +228,42 @@ serve(async (req) => {
 
         console.log('==================== SALVANDO NO PROJECTS ====================');
         
-        // Força atualização do schema
-        await userSupabase.rpc('reload_schema_cache');
+        // Tenta salvar no projects com retry
+        let retryCount = 0;
+        const maxRetries = 3;
+        let projectError;
         
-        const { error: projectError } = await userSupabase
-          .from('projects')
-          .insert([{
-            user_id: user.id,
-            title: prompt.substring(0, 50),
-            image: "https://placehold.co/600x400",
-            prompt: prompt,
-            workflow: parsedWorkflow,
-            platform,
-            is_private: true
-          }]);
+        while (retryCount < maxRetries) {
+          const { error } = await userSupabase
+            .from('projects')
+            .insert([{
+              user_id: user.id,
+              title: prompt.substring(0, 50),
+              image: "https://placehold.co/600x400",
+              prompt: prompt,
+              workflow: parsedWorkflow,
+              platform,
+              is_private: true
+            }]);
+            
+          if (!error) {
+            console.log('Workflow salvo no projects com sucesso');
+            projectError = null;
+            break;
+          }
+          
+          projectError = error;
+          console.error(`Tentativa ${retryCount + 1} falhou:`, error);
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
+        }
 
         if (projectError) {
-          console.error('Erro ao salvar no projects:', projectError);
+          console.error('Erro ao salvar no projects após todas as tentativas:', projectError);
           throw projectError;
-        } else {
-          console.log('Workflow salvo no projects com sucesso');
         }
 
         console.log('==================== PREPARANDO RESPOSTA ====================');
