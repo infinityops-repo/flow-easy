@@ -46,7 +46,8 @@ export const WorkflowInput = () => {
         throw new Error('Resposta inválida do servidor');
       }
 
-      setGeneratedWorkflow(data.workflow);
+      const parsedWorkflow = typeof data.workflow === 'string' ? JSON.parse(data.workflow) : data.workflow;
+      setGeneratedWorkflow(parsedWorkflow);
       setShareableUrl(data.shareableUrl);
       setShowWorkflow(true);
       
@@ -68,7 +69,7 @@ export const WorkflowInput = () => {
   };
 
   const handleCopyJson = () => {
-    const workflowString = JSON.stringify(generatedWorkflow);
+    const workflowString = typeof generatedWorkflow === 'string' ? generatedWorkflow : JSON.stringify(generatedWorkflow);
     
     navigator.clipboard.writeText(workflowString);
     toast({
@@ -78,7 +79,7 @@ export const WorkflowInput = () => {
   };
 
   const handleDownloadJson = () => {
-    const workflowString = JSON.stringify(generatedWorkflow);
+    const workflowString = typeof generatedWorkflow === 'string' ? generatedWorkflow : JSON.stringify(generatedWorkflow);
     
     const blob = new Blob([workflowString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
