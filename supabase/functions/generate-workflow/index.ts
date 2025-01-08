@@ -127,12 +127,12 @@ serve(async (req) => {
       console.log('==================== PARSEANDO WORKFLOW ====================');
       console.log('Conteúdo bruto:', content);
       
-      const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
-      const rawWorkflow = jsonMatch ? jsonMatch[1].trim() : content;
+      const jsonMatch = content.match(/```(?:json)?\n?(.*?)\n?```/s);
+      const rawWorkflow = jsonMatch ? jsonMatch[1].trim() : content.trim();
       console.log('Workflow sem markdown:', rawWorkflow);
 
       try {
-        const parsedWorkflow = JSON.parse(rawWorkflow);
+        const parsedWorkflow = JSON.parse(rawWorkflow.replace(/^\s*```\s*|\s*```\s*$/g, ''));
         console.log('==================== WORKFLOW PARSEADO ====================');
         console.log('Workflow estruturado:', JSON.stringify(parsedWorkflow, null, 2));
         
