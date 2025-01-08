@@ -186,8 +186,14 @@ serve(async (req) => {
         }
         console.log('Conexões processadas:', JSON.stringify(parsedWorkflow.connections, null, 2));
 
-        console.log('==================== PREPARANDO CACHE ====================');
-        console.log('Tamanho do workflow:', JSON.stringify(parsedWorkflow).length);
+        console.log('==================== PREPARANDO SALVAMENTO ====================');
+        console.log('Dados para inserção:', {
+          prompt,
+          platform,
+          workflowSize: JSON.stringify(parsedWorkflow).length,
+          nodesCount: parsedWorkflow.nodes.length,
+          connectionsCount: Object.keys(parsedWorkflow.connections).length
+        });
 
         const { error: insertError } = await supabase
           .from('workflow_cache')
@@ -197,16 +203,32 @@ serve(async (req) => {
             workflow: parsedWorkflow
           }]);
 
+        console.log('==================== RESULTADO DO SALVAMENTO ====================');
         if (insertError) {
           console.error('Erro ao salvar no cache:', insertError);
           console.error('Detalhes do erro:', {
             code: insertError.code,
             message: insertError.message,
             details: insertError.details,
-            hint: insertError.hint
+            hint: insertError.hint,
+            query: insertError.query
+          });
+          console.error('Dados que tentamos salvar:', {
+            prompt,
+            platform,
+            workflowKeys: Object.keys(parsedWorkflow),
+            workflowSize: JSON.stringify(parsedWorkflow).length
           });
         } else {
-          console.log('Workflow salvo no cache com sucesso');
+          console.log('Workflow salvo com sucesso');
+          console.log('Timestamp:', new Date().toISOString());
+          console.log('Detalhes do salvamento:', {
+            prompt,
+            platform,
+            workflowSize: JSON.stringify(parsedWorkflow).length,
+            nodesCount: parsedWorkflow.nodes.length,
+            connectionsCount: Object.keys(parsedWorkflow.connections).length
+          });
         }
 
         console.log('==================== CACHE ATUALIZADO ====================');
