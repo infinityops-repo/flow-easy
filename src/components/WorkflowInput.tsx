@@ -51,14 +51,14 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
         throw new Error('Resposta inválida do servidor');
       }
 
-      const parsedWorkflow = typeof data.workflow === 'string' ? JSON.parse(data.workflow) : data.workflow;
-      setGeneratedWorkflow(parsedWorkflow);
+      // Armazena o workflow como está para a interface
+      setGeneratedWorkflow(data.workflow);
       setShareableUrl(data.shareableUrl);
       setShowWorkflow(true);
       
       // Notifica o componente pai sobre o novo workflow
       if (onWorkflowGenerated) {
-        onWorkflowGenerated(parsedWorkflow, prompt, platform);
+        onWorkflowGenerated(data.workflow, prompt, platform);
       }
 
       toast({
