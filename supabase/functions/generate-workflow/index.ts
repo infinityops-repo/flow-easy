@@ -95,8 +95,8 @@ serve(async (req) => {
           validateN8nWorkflow(parsedWorkflow);
         }
 
-        // Se chegou aqui, o workflow é válido
-        workflow = JSON.stringify(parsedWorkflow, null, 2);
+        // Retorna o workflow validado
+        workflow = rawWorkflow;
       } catch (parseError) {
         console.error('Parse/Validation error:', parseError);
         throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
