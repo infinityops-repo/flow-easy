@@ -81,6 +81,7 @@ const Index = () => {
       }
 
       const newProject = {
+        user_id: session.user.id,
         title: `${platform}-workflow-${projects.length + 1}`,
         image: "/placeholder.svg",
         prompt,
@@ -95,7 +96,10 @@ const Index = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro detalhado:', error);
+        throw error;
+      }
 
       const formattedProject: Project = {
         id: data.id,
