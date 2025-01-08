@@ -67,3 +67,22 @@ Simply open [Lovable](https://lovable.dev/projects/7d850f51-b45f-4f24-9865-193ac
 ## I want to use a custom domain - is that possible?
 
 We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+
+## Checklist de Deploy
+
+Sempre que fizer alterações no código, siga esta sequência:
+
+1. Fazer as alterações no código
+2. Testar localmente
+3. Fazer deploy no Supabase:
+   ```bash
+   supabase functions deploy generate-workflow
+   ```
+4. Commitar e pushar para o GitHub:
+   ```bash
+   git add .
+   git commit -m "feat/fix: descrição clara da alteração"
+   git push origin main
+   ```
+
+⚠️ IMPORTANTE: Nunca pule nenhum desses passos! A ordem é essencial para manter a consistência entre ambientes.

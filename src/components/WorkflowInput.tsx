@@ -33,12 +33,18 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
 
     setIsLoading(true);
     try {
+      console.log('==================== INICIANDO GERAÇÃO DO WORKFLOW ====================');
+      console.log('Prompt:', prompt);
+      console.log('Plataforma:', platform);
+
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Sessão:', session?.user?.id);
       
       if (!session?.access_token) {
         throw new Error('Usuário não autenticado');
       }
 
+      console.log('==================== CHAMANDO FUNÇÃO GENERATE-WORKFLOW ====================');
       const { data, error } = await supabase.functions.invoke('generate-workflow', {
         body: { prompt, platform },
       });
@@ -53,9 +59,11 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
         throw new Error('Resposta inválida do servidor');
       }
 
-      console.log('Workflow gerado:', data.workflow);
-      console.log('Tipo do workflow gerado:', typeof data.workflow);
-      console.log('Estrutura do workflow:', JSON.stringify(data.workflow, null, 2));
+      console.log('==================== WORKFLOW GERADO COM SUCESSO ====================');
+      console.log('Workflow:', JSON.stringify(data.workflow, null, 2));
+      console.log('Tipo do workflow:', typeof data.workflow);
+      console.log('É objeto?', data.workflow !== null && typeof data.workflow === 'object');
+      console.log('Chaves:', Object.keys(data.workflow));
 
       // Armazena o workflow como está para a interface
       setGeneratedWorkflow(data.workflow);
@@ -64,12 +72,21 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       
       // Notifica o componente pai sobre o novo workflow
       if (onWorkflowGenerated) {
-        console.log('Chamando onWorkflowGenerated com:', {
+        console.log('==================== CHAMANDO CALLBACK onWorkflowGenerated ====================');
+        console.log('Parâmetros:', {
           workflow: data.workflow,
           prompt,
           platform
         });
-        onWorkflowGenerated(data.workflow, prompt, platform);
+        
+        try {
+          await onWorkflowGenerated(data.workflow, prompt, platform);
+          console.log('==================== CALLBACK EXECUTADO COM SUCESSO ====================');
+        } catch (callbackError) {
+          console.error('==================== ERRO NO CALLBACK ====================');
+          console.error('Erro:', callbackError);
+          throw callbackError;
+        }
       }
 
       toast({
@@ -78,7 +95,10 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       });
 
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('==================== ERRO NA GERAÇÃO DO WORKFLOW ====================');
+      console.error('Erro completo:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Falha ao gerar workflow. Por favor, tente novamente.",
