@@ -227,6 +227,10 @@ serve(async (req) => {
         }
 
         console.log('==================== SALVANDO NO PROJECTS ====================');
+        
+        // Força atualização do schema
+        await userSupabase.rpc('reload_schema_cache');
+        
         const { error: projectError } = await userSupabase
           .from('projects')
           .insert([{
