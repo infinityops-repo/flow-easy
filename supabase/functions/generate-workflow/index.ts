@@ -41,11 +41,11 @@ serve(async (req) => {
       console.error('Erro ao verificar cache:', cacheError);
     }
 
-    if (cachedWorkflow) {
+    if (cachedWorkflow?.workflow) {
       console.log('Cache hit! Retornando workflow do cache');
       return new Response(
         JSON.stringify({ 
-          workflow: cachedWorkflow.workflow,
+          workflow: JSON.stringify(cachedWorkflow.workflow), // Converte para string
           shareableUrl: null,
           fromCache: true
         }),
