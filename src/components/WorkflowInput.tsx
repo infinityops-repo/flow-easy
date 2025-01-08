@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Paperclip, Share2, Download, Copy } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { QuickAccess } from './QuickAccess';
 
 export const WorkflowInput = () => {
   const [platform, setPlatform] = useState<string>('n8n');
@@ -15,6 +16,11 @@ export const WorkflowInput = () => {
   const [shareableUrl, setShareableUrl] = useState<string | null>(null);
   const [showWorkflow, setShowWorkflow] = useState(false);
   const { toast } = useToast();
+
+  const handleTemplateSelect = (template: any) => {
+    setPrompt(template.prompt);
+    setPlatform(template.platform);
+  };
 
   const handleGenerateWorkflow = async () => {
     if (!prompt.trim()) {
@@ -136,6 +142,10 @@ export const WorkflowInput = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <QuickAccess onTemplateSelect={handleTemplateSelect} />
       </div>
 
       <Dialog open={showWorkflow} onOpenChange={setShowWorkflow}>
