@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HeartLogo } from '@/components/HeartLogo';
 import { WorkflowInput } from '@/components/WorkflowInput';
 import { NavigationTabs } from '@/components/NavigationTabs';
@@ -7,6 +7,8 @@ import ProjectCard from '@/components/ProjectCard';
 import { PricingSection } from '@/components/PricingSection';
 import { FAQSection } from '@/components/FAQSection';
 import { Footer } from '@/components/Footer';
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Project {
   id: string;
@@ -19,66 +21,108 @@ interface Project {
   workflow?: any;
 }
 
-const latestProjects = [
-  {
-    title: "Latest Project 1",
-    image: "/placeholder.svg",
-    editedTime: "1 hour ago",
-    isPrivate: false
-  },
-];
-
-const featuredProjects = [
-  {
-    title: "Featured Project 1",
-    image: "/placeholder.svg",
-    editedTime: "2 days ago",
-    isPrivate: false
-  },
-];
-
-const templateProjects = [
-  {
-    title: "Template 1",
-    image: "/placeholder.svg",
-    editedTime: "1 week ago",
-    isPrivate: false
-  },
-];
-
 const Index = () => {
   const [activeTab, setActiveTab] = useState('my-projects');
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: '1',
-      title: "workflow-magic-creator",
-      image: "/lovable-uploads/2be9b7d8-3454-4224-819a-b88e10b73602.png",
-      editedTime: "2 minutes ago",
-      isPrivate: true
-    },
-    {
-      id: '2',
-      title: "tunnelr",
-      image: "/placeholder.svg",
-      editedTime: "3 days ago",
-      isPrivate: true
-    }
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleWorkflowGenerated = (workflow: any, prompt: string, platform: string) => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      title: `${platform}-workflow-${projects.length + 1}`,
-      image: "/placeholder.svg",
-      editedTime: "agora mesmo",
-      isPrivate: true,
-      prompt,
-      platform,
-      workflow
+  // Carrega os projetos do usuário
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.access_token) {
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('updated_at', { ascending: false });
+
+        if (error) throw error;
+
+        const formattedProjects = data.map(project => ({
+          id: project.id,
+          title: project.title,
+          image: project.image,
+          editedTime: new Date(project.updated_at).toLocaleString(),
+          isPrivate: project.is_private,
+          prompt: project.prompt,
+          platform: project.platform,
+          workflow: project.workflow
+        }));
+
+        setProjects(formattedProjects);
+      } catch (error) {
+        console.error('Erro ao carregar projetos:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar seus projetos. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setProjects([newProject, ...projects]);
-    setActiveTab('my-projects');
+    loadProjects();
+  }, [toast]);
+
+  const handleWorkflowGenerated = async (workflow: any, prompt: string, platform: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const newProject = {
+        title: `${platform}-workflow-${projects.length + 1}`,
+        image: "/placeholder.svg",
+        prompt,
+        platform,
+        workflow,
+        is_private: true
+      };
+
+      const { data, error } = await supabase
+        .from('projects')
+        .insert([newProject])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const formattedProject: Project = {
+        id: data.id,
+        title: data.title,
+        image: data.image,
+        editedTime: new Date(data.updated_at).toLocaleString(),
+        isPrivate: data.is_private,
+        prompt: data.prompt,
+        platform: data.platform,
+        workflow: data.workflow
+      };
+
+      setProjects([formattedProject, ...projects]);
+      setActiveTab('my-projects');
+
+      toast({
+        title: "Sucesso",
+        description: "Projeto salvo com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao salvar projeto:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar o projeto. Por favor, tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReuseProject = (project: Project) => {
@@ -88,16 +132,58 @@ const Index = () => {
     }
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    setProjects(projects.filter(p => p.id !== projectId));
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      setProjects(projects.filter(p => p.id !== projectId));
+      
+      toast({
+        title: "Sucesso",
+        description: "Projeto excluído com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao excluir projeto:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o projeto. Por favor, tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRenameProject = (projectId: string, newTitle: string) => {
-    setProjects(projects.map(project => 
-      project.id === projectId 
-        ? { ...project, title: newTitle } 
-        : project
-    ));
+  const handleRenameProject = async (projectId: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ title: newTitle })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      setProjects(projects.map(project => 
+        project.id === projectId 
+          ? { ...project, title: newTitle } 
+          : project
+      ));
+
+      toast({
+        title: "Sucesso",
+        description: "Projeto renomeado com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao renomear projeto:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível renomear o projeto. Por favor, tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getProjectsForTab = () => {
@@ -105,15 +191,19 @@ const Index = () => {
       case 'my-projects':
         return projects;
       case 'latest':
-        return latestProjects;
+        return [];
       case 'featured':
-        return featuredProjects;
+        return [];
       case 'templates':
-        return templateProjects;
+        return [];
       default:
         return projects;
     }
   };
+
+  if (isLoading) {
+    return <div>Carregando...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
