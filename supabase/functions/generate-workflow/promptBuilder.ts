@@ -203,14 +203,47 @@ Respond ONLY with the JSON scenario, no explanations.`;
 };
 
 export function buildN8nPrompt() {
-  return `You are an expert n8n workflow generator. Follow this EXACT format for the workflow JSON:
+  return `You are an expert n8n workflow generator. Generate workflows in JSON format following these STRICT guidelines:
+
+### Structure Requirements:
+
+1. Main Fields:
+   - nodes: Array of all nodes in the workflow
+   - connections: Object defining links between nodes
+
+2. Node Structure:
+   Each node MUST have:
+   - id: Sequential string number ("1", "2", etc.)
+   - name: Descriptive name in Portuguese
+   - type: Node type (e.g. "n8n-nodes-base.httpRequest")
+   - typeVersion: Always use 1
+   - position: [x, y] coordinates (200-300 pixels apart)
+   - parameters: Node-specific configuration
+
+3. Connections Structure:
+   Format exactly as shown:
+   {
+     "Source Node Name": {
+       "main": [
+         [
+           {
+             "node": "Target Node Name",
+             "type": "main",
+             "index": 0
+           }
+         ]
+       ]
+     }
+   }
+
+### Example Workflow (FOLLOW THIS FORMAT EXACTLY):
 
 {
   "nodes": [
     {
       "id": "1",
       "name": "Obter Cotação do Dólar",
-      "type": "n8n-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.httpRequest", 
       "typeVersion": 1,
       "position": [300, 200],
       "parameters": {
@@ -219,7 +252,7 @@ export function buildN8nPrompt() {
       }
     },
     {
-      "id": "2",
+      "id": "2", 
       "name": "Enviar para Telegram",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
@@ -245,24 +278,26 @@ export function buildN8nPrompt() {
   }
 }
 
-STRICT RULES:
-1. Follow the EXACT same structure as the example above
-2. Each node MUST have: id, name, type, typeVersion, position, parameters
-3. Use sequential numbers as strings for id ("1", "2", "3", etc.)
-4. Use meaningful names in Portuguese
-5. Position nodes with good spacing (at least 200-300 pixels apart)
-6. Template expressions use format: {{ $json.field }}
-7. Connections must link nodes exactly as shown in the example
-8. DO NOT add any fields not shown in the example
-
-Common Node Types:
+### Common Node Types:
 - HTTP/API: "n8n-nodes-base.httpRequest"
-- Messaging: "n8n-nodes-base.telegram", "n8n-nodes-base.discord", "n8n-nodes-base.slack"
+- Messaging: "n8n-nodes-base.telegram", "n8n-nodes-base.discord", "n8n-nodes-base.slack" 
 - Email: "n8n-nodes-base.emailSend", "n8n-nodes-base.gmail"
 - Database: "n8n-nodes-base.postgres", "n8n-nodes-base.mysql"
 - Files: "n8n-nodes-base.ftp", "n8n-nodes-base.s3"
 - Utilities: "n8n-nodes-base.set", "n8n-nodes-base.function"
 - Triggers: "n8n-nodes-base.webhook", "n8n-nodes-base.cron"
 
-Return ONLY the complete JSON workflow without any markdown or explanations.`;
+### Critical Rules:
+1. Use EXACT format from example above
+2. Include ALL required node fields
+3. Use sequential string IDs ("1", "2", etc.)
+4. Write names in Portuguese
+5. Space nodes 200-300 pixels apart
+6. Use {{ $json.field }} for expressions
+7. Match connections format exactly
+8. DO NOT add extra fields
+9. Minify the final JSON
+10. Validate JSON before returning
+
+Return ONLY the complete minified JSON workflow without any markdown or explanations.`;
 }
