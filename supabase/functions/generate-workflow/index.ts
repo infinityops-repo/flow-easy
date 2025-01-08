@@ -136,13 +136,33 @@ serve(async (req) => {
         console.log('==================== WORKFLOW PARSEADO ====================');
         console.log('Workflow estruturado:', JSON.stringify(parsedWorkflow, null, 2));
         
-        console.log('==================== VALIDANDO WORKFLOW ====================');
+        console.log('==================== DETALHES DO WORKFLOW ====================');
+        console.log('Tipo dos nós:', parsedWorkflow.nodes.map(node => node.type));
+        console.log('Parâmetros dos nós:', parsedWorkflow.nodes.map(node => ({
+          name: node.name,
+          parameters: node.parameters
+        })));
+        console.log('Estrutura das conexões:', Object.keys(parsedWorkflow.connections).map(key => ({
+          from: key,
+          to: parsedWorkflow.connections[key].main.flat().map(conn => conn.node)
+        })));
+
+        console.log('==================== VALIDAÇÃO DO WORKFLOW ====================');
+        console.log('Checando nós obrigatórios...');
+        console.log('Checando conexões obrigatórias...');
+        console.log('Checando parâmetros obrigatórios...');
+
         if (platform === 'make') {
           validateMakeWorkflow(parsedWorkflow);
         } else {
           validateN8nWorkflow(parsedWorkflow);
         }
         console.log('Validação concluída com sucesso');
+
+        console.log('==================== RESULTADO DA VALIDAÇÃO ====================');
+        console.log('Nós válidos:', parsedWorkflow.nodes.length > 0);
+        console.log('Conexões válidas:', Object.keys(parsedWorkflow.connections).length > 0);
+        console.log('Parâmetros válidos:', parsedWorkflow.nodes.every(node => node.parameters !== undefined));
 
         console.log('==================== PROCESSANDO CONEXÕES ====================');
         if (parsedWorkflow.connections) {
@@ -166,7 +186,9 @@ serve(async (req) => {
         }
         console.log('Conexões processadas:', JSON.stringify(parsedWorkflow.connections, null, 2));
 
-        console.log('==================== SALVANDO NO CACHE ====================');
+        console.log('==================== PREPARANDO CACHE ====================');
+        console.log('Tamanho do workflow:', JSON.stringify(parsedWorkflow).length);
+
         const { error: insertError } = await supabase
           .from('workflow_cache')
           .insert([{
@@ -186,6 +208,10 @@ serve(async (req) => {
         } else {
           console.log('Workflow salvo no cache com sucesso');
         }
+
+        console.log('==================== CACHE ATUALIZADO ====================');
+        console.log('Status do cache:', 'Salvo com sucesso');
+        console.log('Timestamp:', new Date().toISOString());
 
         console.log('==================== PREPARANDO RESPOSTA ====================');
         const response = {

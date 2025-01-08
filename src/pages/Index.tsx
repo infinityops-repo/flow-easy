@@ -71,6 +71,7 @@ const Index = () => {
     console.log('Chaves do workflow:', Object.keys(workflow));
     console.log('Número de nós:', workflow.nodes?.length);
     console.log('Número de conexões:', workflow.edges?.length);
+    console.log('Tamanho do workflow em bytes:', new TextEncoder().encode(JSON.stringify(workflow)).length);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -93,29 +94,43 @@ const Index = () => {
       console.log('Projeto a ser salvo:', JSON.stringify(project, null, 2));
       console.log('Tipo do projeto:', typeof project);
       console.log('Chaves do projeto:', Object.keys(project));
+      console.log('Tamanho do projeto em bytes:', new TextEncoder().encode(JSON.stringify(project)).length);
 
       console.log('==================== SALVANDO PROJETO NO SUPABASE ====================');
       console.log('URL do Supabase:', supabase.supabaseUrl);
-      const { data, error } = await supabase
+      console.log('Configuração do Supabase:', {
+        autoRefreshToken: supabase.auth.autoRefreshToken,
+        persistSession: supabase.auth.persistSession,
+        storageKey: supabase.storageKey,
+        headers: supabase.headers
+      });
+
+      // Primeiro salvamos o projeto
+      const { data: savedProject, error: saveError } = await supabase
         .from('projects')
         .insert([project])
         .select()
         .single();
 
-      if (error) {
+      if (saveError) {
         console.error('==================== ERRO AO SALVAR PROJETO ====================');
-        console.error('Erro:', error);
-        console.error('Detalhes:', error.details);
-        console.error('Hint:', error.hint);
-        console.error('Código:', error.code);
-        console.error('Mensagem:', error.message);
-        throw error;
+        console.error('Erro:', saveError);
+        console.error('Detalhes:', saveError.details);
+        console.error('Hint:', saveError.hint);
+        console.error('Código:', saveError.code);
+        console.error('Mensagem:', saveError.message);
+        console.error('Stack:', saveError.stack);
+        throw saveError;
       }
 
       console.log('==================== PROJETO SALVO COM SUCESSO ====================');
-      console.log('Projeto salvo:', JSON.stringify(data, null, 2));
-      console.log('ID do projeto salvo:', data?.id);
-      console.log('Timestamp de criação:', data?.created_at);
+      console.log('Projeto salvo:', JSON.stringify(savedProject, null, 2));
+      console.log('ID do projeto salvo:', savedProject?.id);
+      console.log('Timestamp de criação:', savedProject?.created_at);
+      console.log('Workflow salvo:', JSON.stringify(savedProject?.workflow, null, 2));
+
+      // Atualizamos o estado local primeiro com o projeto recém-salvo
+      setProjects(prevProjects => [savedProject, ...prevProjects]);
 
       toast({
         title: "Sucesso",
@@ -123,7 +138,7 @@ const Index = () => {
       });
 
       console.log('==================== ATUALIZANDO LISTA DE PROJETOS ====================');
-      // Atualiza a lista de projetos
+      // Depois buscamos a lista atualizada
       const { data: updatedProjects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
@@ -137,14 +152,17 @@ const Index = () => {
         console.error('Hint:', projectsError.hint);
         console.error('Código:', projectsError.code);
         console.error('Mensagem:', projectsError.message);
-        throw projectsError;
+        console.error('Stack:', projectsError.stack);
+        // Não lançamos o erro aqui para não afetar a experiência do usuário
+        console.error('Erro ao atualizar lista de projetos:', projectsError);
+      } else {
+        console.log('==================== PROJETOS ATUALIZADOS ====================');
+        console.log('Total de projetos:', updatedProjects?.length);
+        console.log('IDs dos projetos:', updatedProjects?.map(p => p.id));
+        console.log('Projetos ordenados por:', updatedProjects?.map(p => ({ id: p.id, created_at: p.created_at })));
+        console.log('Tamanho total dos projetos em bytes:', new TextEncoder().encode(JSON.stringify(updatedProjects)).length);
+        setProjects(updatedProjects || []);
       }
-
-      console.log('==================== PROJETOS ATUALIZADOS ====================');
-      console.log('Total de projetos:', updatedProjects?.length);
-      console.log('IDs dos projetos:', updatedProjects?.map(p => p.id));
-      console.log('Projetos ordenados por:', updatedProjects?.map(p => ({ id: p.id, created_at: p.created_at })));
-      setProjects(updatedProjects || []);
 
       console.log('==================== ATUALIZAÇÃO DE ESTADO CONCLUÍDA ====================');
 
@@ -154,6 +172,7 @@ const Index = () => {
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       console.error('Tipo do erro:', error instanceof Error ? error.constructor.name : typeof error);
       console.error('Mensagem do erro:', error instanceof Error ? error.message : String(error));
+      console.error('Propriedades do erro:', Object.keys(error));
       
       toast({
         title: "Erro ao salvar workflow",
