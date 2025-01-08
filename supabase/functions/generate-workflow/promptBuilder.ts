@@ -209,7 +209,7 @@ export function buildN8nPrompt() {
 
 1. Main Fields:
    - nodes: Array of all nodes in the workflow
-   - connections: Object defining links between nodes
+   - connections: Object defining ALL links between nodes
 
 2. Node Structure:
    Each node MUST have:
@@ -217,17 +217,17 @@ export function buildN8nPrompt() {
    - name: Descriptive name in Portuguese
    - type: Node type (e.g. "n8n-nodes-base.httpRequest")
    - typeVersion: Always use 1
-   - position: [x, y] coordinates (200-300 pixels apart)
+   - position: [x, y] coordinates (300 pixels apart horizontally)
    - parameters: Node-specific configuration
 
 3. Connections Structure:
-   Format exactly as shown:
+   EVERY node (except the last one) MUST have connections:
    {
      "Source Node Name": {
        "main": [
          [
            {
-             "node": "Target Node Name",
+             "node": "Next Node Name",
              "type": "main",
              "index": 0
            }
@@ -235,6 +235,11 @@ export function buildN8nPrompt() {
        ]
      }
    }
+
+4. Data Flow:
+   - Use Set nodes between data collection and output nodes
+   - Include error handling and default values
+   - Ensure proper data propagation between nodes
 
 ### Example Workflow (FOLLOW THIS FORMAT EXACTLY):
 
@@ -252,19 +257,47 @@ export function buildN8nPrompt() {
       }
     },
     {
-      "id": "2", 
+      "id": "2",
+      "name": "Processar Dados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [600, 200],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "cotacao",
+              "value": "{{ $json.rates.BRL || '0.00' }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3", 
       "name": "Enviar para Telegram",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1,
-      "position": [600, 100],
+      "position": [900, 200],
       "parameters": {
         "chatId": "SEU_CHAT_ID",
-        "text": "Cotação do dólar: {{ $json.rates.BRL }} BRL"
+        "text": "Cotação do dólar: {{ $json.cotacao }} BRL"
       }
     }
   ],
   "connections": {
     "Obter Cotação do Dólar": {
+      "main": [
+        [
+          {
+            "node": "Processar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Dados": {
       "main": [
         [
           {
@@ -288,16 +321,16 @@ export function buildN8nPrompt() {
 - Triggers: "n8n-nodes-base.webhook", "n8n-nodes-base.cron"
 
 ### Critical Rules:
-1. Use EXACT format from example above
-2. Include ALL required node fields
-3. Use sequential string IDs ("1", "2", etc.)
-4. Write names in Portuguese
-5. Space nodes 200-300 pixels apart
-6. Use {{ $json.field }} for expressions
-7. Match connections format exactly
-8. DO NOT add extra fields
-9. Minify the final JSON
-10. Validate JSON before returning
+1. ALWAYS include connections for EVERY node (except last)
+2. Use Set nodes for data processing
+3. Include ALL required node fields
+4. Use sequential string IDs ("1", "2", etc.)
+5. Write names in Portuguese
+6. Space nodes 300 pixels apart horizontally
+7. Use {{ $json.field }} for expressions
+8. Add error handling and default values
+9. Validate JSON before returning
+10. Ensure proper data flow between nodes
 
-Return ONLY the complete minified JSON workflow without any markdown or explanations.`;
+Return ONLY the complete JSON workflow without any markdown or explanations.`;
 }
