@@ -47,6 +47,9 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       console.log('==================== CHAMANDO FUNÇÃO GENERATE-WORKFLOW ====================');
       const { data, error } = await supabase.functions.invoke('generate-workflow', {
         body: { prompt, platform },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
