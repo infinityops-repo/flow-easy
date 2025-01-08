@@ -43,6 +43,8 @@ serve(async (req) => {
 
     if (cachedWorkflow?.workflow) {
       console.log('Cache hit! Retornando workflow do cache');
+      console.log('Tipo do workflow:', typeof cachedWorkflow.workflow);
+      console.log('Workflow do cache:', cachedWorkflow.workflow);
       return new Response(
         JSON.stringify({ 
           workflow: cachedWorkflow.workflow,
@@ -141,10 +143,12 @@ serve(async (req) => {
           console.error('Erro ao salvar no cache:', insertError);
         } else {
           console.log('Workflow salvo no cache com sucesso');
+          console.log('Tipo do workflow salvo:', typeof parsedWorkflow);
+          console.log('Workflow salvo:', parsedWorkflow);
         }
 
         // Retorna o workflow validado
-        workflow = rawWorkflow;
+        workflow = parsedWorkflow;
       } catch (parseError) {
         console.error('Parse/Validation error:', parseError);
         throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
