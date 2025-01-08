@@ -87,7 +87,7 @@ const Index = () => {
         image: "/placeholder.svg",
         prompt,
         platform,
-        workflow: JSON.stringify(workflow),
+        workflow: workflow,
         is_private: true
       };
 
