@@ -202,26 +202,34 @@ serve(async (req) => {
         }
 
         console.log('==================== SALVANDO NO PROJECTS ====================');
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.user?.id) {
-          console.error('Usuário não autenticado');
-        } else {
-          const { error: projectError } = await supabase
-            .from('projects')
-            .insert([{
-              user_id: session.user.id,
-              name: prompt.substring(0, 50),
-              description: prompt,
-              workflow: parsedWorkflow,
-              platform
-            }]);
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          console.error('Token de autorização não encontrado');
+          throw new Error('Usuário não autenticado');
+        }
 
-          if (projectError) {
-            console.error('Erro ao salvar no projects:', projectError);
-          } else {
-            console.log('Workflow salvo no projects com sucesso');
-          }
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+        if (userError || !user?.id) {
+          console.error('Erro ao obter usuário:', userError);
+          throw new Error('Usuário não autenticado');
+        }
+
+        const { error: projectError } = await supabase
+          .from('projects')
+          .insert([{
+            user_id: user.id,
+            name: prompt.substring(0, 50),
+            description: prompt,
+            workflow: parsedWorkflow,
+            platform
+          }]);
+
+        if (projectError) {
+          console.error('Erro ao salvar no projects:', projectError);
+        } else {
+          console.log('Workflow salvo no projects com sucesso');
         }
 
         console.log('==================== PREPARANDO RESPOSTA ====================');
