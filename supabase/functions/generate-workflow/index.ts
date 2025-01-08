@@ -186,16 +186,8 @@ serve(async (req) => {
         }
         console.log('Conexões processadas:', JSON.stringify(parsedWorkflow.connections, null, 2));
 
-        console.log('==================== PREPARANDO SALVAMENTO ====================');
-        console.log('Dados para inserção:', {
-          prompt,
-          platform,
-          workflowSize: JSON.stringify(parsedWorkflow).length,
-          nodesCount: parsedWorkflow.nodes.length,
-          connectionsCount: Object.keys(parsedWorkflow.connections).length
-        });
-
-        const { error: insertError } = await supabase
+        console.log('==================== SALVANDO NO CACHE ====================');
+        const { error: cacheError } = await supabase
           .from('workflow_cache')
           .insert([{
             prompt,
@@ -203,56 +195,34 @@ serve(async (req) => {
             workflow: parsedWorkflow
           }]);
 
-        console.log('==================== RESULTADO DO SALVAMENTO ====================');
-        if (insertError) {
-          console.error('Erro ao salvar no cache:', insertError);
-          console.error('Detalhes do erro:', {
-            code: insertError.code,
-            message: insertError.message,
-            details: insertError.details,
-            hint: insertError.hint,
-            query: insertError.query
-          });
-          console.error('Dados que tentamos salvar:', {
-            prompt,
-            platform,
-            workflowKeys: Object.keys(parsedWorkflow),
-            workflowSize: JSON.stringify(parsedWorkflow).length
-          });
+        if (cacheError) {
+          console.error('Erro ao salvar no cache:', cacheError);
         } else {
-          console.log('Workflow salvo com sucesso');
-          console.log('Timestamp:', new Date().toISOString());
-          console.log('Detalhes do salvamento:', {
-            prompt,
-            platform,
-            workflowSize: JSON.stringify(parsedWorkflow).length,
-            nodesCount: parsedWorkflow.nodes.length,
-            connectionsCount: Object.keys(parsedWorkflow.connections).length
-          });
-          
-          console.log('==================== VERIFICAÇÃO PÓS-SALVAMENTO ====================');
-          const { data: savedWorkflow, error: checkError } = await supabase
-            .from('workflow_cache')
-            .select('*')
-            .eq('prompt', prompt)
-            .eq('platform', platform)
-            .single();
-
-          if (checkError) {
-            console.error('Erro ao verificar workflow salvo:', checkError);
-          } else {
-            console.log('Workflow encontrado após salvamento:', {
-              id: savedWorkflow.id,
-              prompt: savedWorkflow.prompt,
-              platform: savedWorkflow.platform,
-              workflowSize: JSON.stringify(savedWorkflow.workflow).length
-            });
-          }
+          console.log('Workflow salvo no cache com sucesso');
         }
 
-        console.log('==================== CACHE ATUALIZADO ====================');
-        console.log('Status do cache:', 'Salvo com sucesso');
-        console.log('Timestamp:', new Date().toISOString());
+        console.log('==================== SALVANDO NO PROJECTS ====================');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user?.id) {
+          console.error('Usuário não autenticado');
+        } else {
+          const { error: projectError } = await supabase
+            .from('projects')
+            .insert([{
+              user_id: session.user.id,
+              name: prompt.substring(0, 50),
+              description: prompt,
+              workflow: parsedWorkflow,
+              platform
+            }]);
+
+          if (projectError) {
+            console.error('Erro ao salvar no projects:', projectError);
+          } else {
+            console.log('Workflow salvo no projects com sucesso');
+          }
+        }
 
         console.log('==================== PREPARANDO RESPOSTA ====================');
         const response = {
