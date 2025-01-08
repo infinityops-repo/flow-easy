@@ -45,7 +45,7 @@ serve(async (req) => {
       console.log('Cache hit! Retornando workflow do cache');
       return new Response(
         JSON.stringify({ 
-          workflow: JSON.stringify(cachedWorkflow.workflow), // Converte para string
+          workflow: cachedWorkflow.workflow,
           shareableUrl: null,
           fromCache: true
         }),
