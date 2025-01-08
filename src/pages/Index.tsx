@@ -87,7 +87,7 @@ const Index = () => {
         image: "/placeholder.svg",
         prompt,
         platform,
-        workflow: workflow,
+        workflow: JSON.stringify(workflow),
         is_private: true
       };
 
@@ -114,7 +114,7 @@ const Index = () => {
         isPrivate: data.is_private,
         prompt: data.prompt,
         platform: data.platform,
-        workflow: data.workflow
+        workflow: JSON.parse(data.workflow)
       };
 
       setProjects([formattedProject, ...projects]);
