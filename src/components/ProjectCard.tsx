@@ -1,12 +1,11 @@
 import { ProjectCardProps } from "@/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Copy } from "lucide-react";
+import { Pencil, Trash2, Copy, Repeat, Eye } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Repeat, Eye } from "lucide-react";
 
 export interface ProjectCardProps {
   id: string;
@@ -44,6 +43,15 @@ export const ProjectCard = ({
       await onRename(newTitle);
     }
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
