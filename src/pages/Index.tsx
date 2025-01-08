@@ -12,11 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Project {
   id: string;
-  name: string;
-  description: string;
+  title: string;
+  image: string;
+  prompt: string;
   workflow: any;
   platform: string;
   user_id: string;
+  is_private: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -101,19 +103,21 @@ const Index = () => {
 
       console.log('==================== PREPARANDO PROJETO PARA SALVAR ====================');
       const project = {
-        name: prompt.substring(0, 50),
-        description: prompt,
+        title: prompt.substring(0, 50),
+        image: "https://placehold.co/600x400",
+        prompt: prompt,
         workflow: workflow,
         platform,
         user_id: session.user.id,
+        is_private: true
       };
       console.log('Projeto a ser salvo:', JSON.stringify(project, null, 2));
       console.log('Tipo do projeto:', typeof project);
       console.log('Chaves do projeto:', Object.keys(project));
       console.log('Tamanho do projeto em bytes:', new TextEncoder().encode(JSON.stringify(project)).length);
       console.log('Validação dos campos:');
-      console.log('- Nome válido:', project.name && project.name.length <= 50);
-      console.log('- Descrição presente:', !!project.description);
+      console.log('- Nome válido:', project.title && project.title.length <= 50);
+      console.log('- Descrição presente:', !!project.prompt);
       console.log('- Workflow válido:', !!project.workflow && typeof project.workflow === 'object');
       console.log('- Plataforma válida:', !!project.platform);
       console.log('- ID do usuário válido:', !!project.user_id);
@@ -231,10 +235,45 @@ const Index = () => {
     }
   };
 
-  const handleReuseProject = (project: Project) => {
-    if (project.description && project.platform) {
-      // Aqui vamos passar os dados do projeto para o WorkflowInput
-      // Implementaremos essa funcionalidade no próximo passo
+  const handleReuseProject = async (project: Project) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const newProject = {
+        title: `${project.title} (cópia)`,
+        image: project.image,
+        prompt: project.prompt,
+        workflow: project.workflow,
+        platform: project.platform,
+        user_id: session.user.id,
+        is_private: true
+      };
+
+      const { data: savedProject, error } = await supabase
+        .from('projects')
+        .insert([newProject])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProjects([savedProject, ...projects]);
+
+      toast({
+        title: "Sucesso",
+        description: "Projeto duplicado com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao duplicar projeto:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível duplicar o projeto. Por favor, tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -263,19 +302,17 @@ const Index = () => {
     }
   };
 
-  const handleRenameProject = async (projectId: string, newName: string) => {
+  const handleRenameProject = async (projectId: string, newTitle: string) => {
     try {
       const { error } = await supabase
         .from('projects')
-        .update({ name: newName })
+        .update({ title: newTitle })
         .eq('id', projectId);
 
       if (error) throw error;
 
-      setProjects(projects.map(project => 
-        project.id === projectId 
-          ? { ...project, name: newName } 
-          : project
+      setProjects(projects.map(p => 
+        p.id === projectId ? { ...p, title: newTitle } : p
       ));
 
       toast({
@@ -337,15 +374,16 @@ const Index = () => {
                 <ProjectCard
                   key={project.id}
                   id={project.id}
-                  name={project.name}
-                  description={project.description}
+                  title={project.title}
+                  image={project.image}
+                  prompt={project.prompt}
                   platform={project.platform}
                   created_at={project.created_at}
                   updated_at={project.updated_at}
                   workflow={project.workflow}
                   onReuse={() => handleReuseProject(project)}
-                  onDelete={() => handleDeleteProject(project.id)}
-                  onRename={(newName) => handleRenameProject(project.id, newName)}
+                  onDelete={async () => await handleDeleteProject(project.id)}
+                  onRename={async (newTitle) => await handleRenameProject(project.id, newTitle)}
                 />
               ))}
             </div>

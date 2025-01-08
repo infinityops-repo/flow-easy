@@ -38,43 +38,49 @@ export type Database = {
       }
       projects: {
         Row: {
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          is_private: boolean | null
-          title: string
-          updated_at: string
-          user_id: string
+          id: string;
+          user_id: string;
+          title: string;
+          image: string;
+          prompt: string;
+          platform: string;
+          workflow: Json;
+          is_private: boolean;
+          created_at: string;
+          updated_at: string;
         }
         Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_private?: boolean | null
-          title: string
-          updated_at?: string
-          user_id: string
+          id?: string;
+          user_id: string;
+          title: string;
+          image: string;
+          prompt: string;
+          platform: string;
+          workflow: Json;
+          is_private?: boolean;
+          created_at?: string;
+          updated_at?: string;
         }
         Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          is_private?: boolean | null
-          title?: string
-          updated_at?: string
-          user_id?: string
+          id?: string;
+          user_id?: string;
+          title?: string;
+          image?: string;
+          prompt?: string;
+          platform?: string;
+          workflow?: Json;
+          is_private?: boolean;
+          created_at?: string;
+          updated_at?: string;
         }
         Relationships: [
           {
             foreignKeyName: "projects_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       workflows: {

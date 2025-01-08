@@ -220,10 +220,12 @@ serve(async (req) => {
           .from('projects')
           .insert([{
             user_id: user.id,
-            name: prompt.substring(0, 50),
-            description: prompt,
+            title: prompt.substring(0, 50),
+            image: "https://placehold.co/600x400",
+            prompt: prompt,
             workflow: parsedWorkflow,
-            platform
+            platform,
+            is_private: true
           }]);
 
         if (projectError) {
