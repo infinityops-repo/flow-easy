@@ -68,9 +68,7 @@ export const WorkflowInput = () => {
   };
 
   const handleCopyJson = () => {
-    const workflowString = platform === 'make' 
-      ? JSON.stringify(generatedWorkflow, null, 2)
-      : JSON.stringify(generatedWorkflow, null, 2);
+    const workflowString = JSON.stringify(generatedWorkflow);
     
     navigator.clipboard.writeText(workflowString);
     toast({
@@ -80,9 +78,7 @@ export const WorkflowInput = () => {
   };
 
   const handleDownloadJson = () => {
-    const workflowString = platform === 'make' 
-      ? JSON.stringify(generatedWorkflow, null, 2)
-      : JSON.stringify(generatedWorkflow, null, 2);
+    const workflowString = JSON.stringify(generatedWorkflow);
     
     const blob = new Blob([workflowString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -162,7 +158,7 @@ export const WorkflowInput = () => {
             </div>
             <div className="prose prose-sm max-w-none">
               <pre className="whitespace-pre-wrap bg-background/80 p-4 rounded-md overflow-x-auto">
-                {JSON.stringify(generatedWorkflow, null, 2)}
+                {JSON.stringify(generatedWorkflow)}
               </pre>
             </div>
             {shareableUrl && (
