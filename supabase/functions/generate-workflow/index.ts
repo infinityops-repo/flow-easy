@@ -274,13 +274,13 @@ serve(async (req) => {
         };
         console.log('Resposta final:', JSON.stringify(response, null, 2));
 
-        return new Response(
+    return new Response(
           JSON.stringify(response),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          },
-        );
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    );
       } catch (parseError) {
         console.error('==================== ERRO DE PARSE/VALIDAÇÃO ====================');
         console.error('Erro:', parseError);
