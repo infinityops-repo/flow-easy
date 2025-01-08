@@ -19,7 +19,8 @@ serve(async (req) => {
 
   try {
     const { prompt, platform } = await req.json();
-    console.log('Received request:', { prompt, platform });
+    console.log('==================== INICIANDO GERAÇÃO DO WORKFLOW ====================');
+    console.log('Request recebida:', { prompt, platform });
 
     if (!prompt) {
       throw new Error('Prompt é obrigatório');
@@ -37,14 +38,18 @@ serve(async (req) => {
       .eq('platform', platform)
       .single();
 
+    console.log('==================== VERIFICAÇÃO DE CACHE ====================');
+    console.log('Cache error:', cacheError);
+    console.log('Cache data:', cachedWorkflow);
+
     if (cacheError && cacheError.code !== 'PGRST116') {
       console.error('Erro ao verificar cache:', cacheError);
     }
 
     if (cachedWorkflow?.workflow) {
-      console.log('Cache hit! Retornando workflow do cache');
+      console.log('==================== WORKFLOW ENCONTRADO NO CACHE ====================');
       console.log('Tipo do workflow:', typeof cachedWorkflow.workflow);
-      console.log('Workflow do cache:', cachedWorkflow.workflow);
+      console.log('Workflow do cache:', JSON.stringify(cachedWorkflow.workflow, null, 2));
       return new Response(
         JSON.stringify({ 
           workflow: cachedWorkflow.workflow,
@@ -58,10 +63,11 @@ serve(async (req) => {
       );
     }
 
-    console.log('Cache miss. Gerando novo workflow...');
+    console.log('==================== GERANDO NOVO WORKFLOW ====================');
     const systemPrompt = platform === 'make' ? buildMakePrompt() : buildN8nPrompt();
+    console.log('System prompt:', systemPrompt);
     
-    console.log('Sending request to OpenAI...');
+    console.log('==================== CHAMANDO OPENAI ====================');
     const completion = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -84,6 +90,10 @@ serve(async (req) => {
       }),
     });
 
+    console.log('==================== RESPOSTA OPENAI ====================');
+    console.log('Status:', completion.status);
+    console.log('Status text:', completion.statusText);
+
     if (!completion.ok) {
       const error = await completion.text();
       console.error('OpenAI API error:', error);
@@ -92,48 +102,49 @@ serve(async (req) => {
 
       try {
         const errorJson = JSON.parse(error);
+        console.log('Error JSON:', errorJson);
         if (errorJson.error?.code === 'insufficient_quota') {
           throw new Error('Limite de requisições atingido. Por favor, tente novamente mais tarde.');
         }
       } catch (e) {
-        // Se não conseguir parsear o JSON, usa a mensagem genérica
+        console.error('Erro ao parsear erro da OpenAI:', e);
       }
       
       throw new Error(`Erro ao chamar OpenAI API: ${completion.status} - ${completion.statusText}`);
     }
 
     const response = await completion.json();
-    console.log('OpenAI response received');
+    console.log('==================== PROCESSANDO RESPOSTA ====================');
+    console.log('Response completa:', JSON.stringify(response, null, 2));
     
     if (!response.choices?.[0]?.message?.content) {
       console.error('Invalid OpenAI response:', response);
       throw new Error('Resposta inválida da API');
     }
 
-    let workflow;
     try {
       const content = response.choices[0].message.content.trim();
-      console.log('Raw OpenAI response:', content);
+      console.log('==================== PARSEANDO WORKFLOW ====================');
+      console.log('Conteúdo bruto:', content);
       
-      // Remove os blocos de código markdown se existirem
       const jsonMatch = content.match(/```json\n?(.*)\n?```/s);
       const rawWorkflow = jsonMatch ? jsonMatch[1].trim() : content;
-      console.log('Workflow após remover markdown:', rawWorkflow);
+      console.log('Workflow sem markdown:', rawWorkflow);
 
       try {
-        // Valida o JSON
         const parsedWorkflow = JSON.parse(rawWorkflow);
-        console.log('Workflow após parse:', JSON.stringify(parsedWorkflow, null, 2));
+        console.log('==================== WORKFLOW PARSEADO ====================');
+        console.log('Workflow estruturado:', JSON.stringify(parsedWorkflow, null, 2));
         
-        // Valida o workflow baseado na plataforma
+        console.log('==================== VALIDANDO WORKFLOW ====================');
         if (platform === 'make') {
           validateMakeWorkflow(parsedWorkflow);
         } else {
           validateN8nWorkflow(parsedWorkflow);
         }
-        console.log('Workflow validado com sucesso');
+        console.log('Validação concluída com sucesso');
 
-        // Garante que as conexões estão completas (sem [Object])
+        console.log('==================== PROCESSANDO CONEXÕES ====================');
         if (parsedWorkflow.connections) {
           Object.keys(parsedWorkflow.connections).forEach(key => {
             const connection = parsedWorkflow.connections[key];
@@ -155,7 +166,7 @@ serve(async (req) => {
         }
         console.log('Conexões processadas:', JSON.stringify(parsedWorkflow.connections, null, 2));
 
-        // Salva no cache
+        console.log('==================== SALVANDO NO CACHE ====================');
         const { error: insertError } = await supabase
           .from('workflow_cache')
           .insert([{
@@ -176,7 +187,7 @@ serve(async (req) => {
           console.log('Workflow salvo no cache com sucesso');
         }
 
-        // Prepara a resposta
+        console.log('==================== PREPARANDO RESPOSTA ====================');
         const response = {
           workflow: parsedWorkflow,
           shareableUrl: null,
@@ -192,17 +203,23 @@ serve(async (req) => {
           },
         );
       } catch (parseError) {
-        console.error('Parse/Validation error:', parseError);
+        console.error('==================== ERRO DE PARSE/VALIDAÇÃO ====================');
+        console.error('Erro:', parseError);
+        console.error('Stack:', parseError.stack);
         throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
       }
     } catch (e) {
-      console.error('Error:', e);
-      console.error('Raw content:', response.choices[0].message.content);
+      console.error('==================== ERRO GERAL ====================');
+      console.error('Erro:', e);
+      console.error('Stack:', e.stack);
+      console.error('Conteúdo bruto:', response.choices[0].message.content);
       throw new Error('Formato de workflow inválido. Por favor, tente novamente.');
     }
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('==================== ERRO NA REQUISIÇÃO ====================');
+    console.error('Erro:', error);
+    console.error('Stack:', error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

@@ -68,10 +68,15 @@ const Index = () => {
     console.log('Tipo do workflow:', typeof workflow);
     console.log('Prompt:', prompt);
     console.log('Plataforma:', platform);
+    console.log('Chaves do workflow:', Object.keys(workflow));
+    console.log('Número de nós:', workflow.nodes?.length);
+    console.log('Número de conexões:', workflow.edges?.length);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       console.log('Sessão:', session?.user?.id);
+      console.log('Status da autenticação:', session ? 'Autenticado' : 'Não autenticado');
+      console.log('Dados completos da sessão:', JSON.stringify(session, null, 2));
 
       if (!session?.user?.id) {
         throw new Error('Usuário não autenticado');
@@ -86,11 +91,14 @@ const Index = () => {
         user_id: session.user.id,
       };
       console.log('Projeto a ser salvo:', JSON.stringify(project, null, 2));
+      console.log('Tipo do projeto:', typeof project);
+      console.log('Chaves do projeto:', Object.keys(project));
 
       console.log('==================== SALVANDO PROJETO NO SUPABASE ====================');
+      console.log('URL do Supabase:', supabase.supabaseUrl);
       const { data, error } = await supabase
         .from('projects')
-        .insert(project)
+        .insert([project])
         .select()
         .single();
 
@@ -99,14 +107,24 @@ const Index = () => {
         console.error('Erro:', error);
         console.error('Detalhes:', error.details);
         console.error('Hint:', error.hint);
+        console.error('Código:', error.code);
+        console.error('Mensagem:', error.message);
         throw error;
       }
 
       console.log('==================== PROJETO SALVO COM SUCESSO ====================');
-      console.log('Projeto salvo:', data);
+      console.log('Projeto salvo:', JSON.stringify(data, null, 2));
+      console.log('ID do projeto salvo:', data?.id);
+      console.log('Timestamp de criação:', data?.created_at);
 
+      toast({
+        title: "Sucesso",
+        description: "Workflow salvo com sucesso!",
+      });
+
+      console.log('==================== ATUALIZANDO LISTA DE PROJETOS ====================');
       // Atualiza a lista de projetos
-      const { data: projects, error: projectsError } = await supabase
+      const { data: updatedProjects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
         .eq('user_id', session.user.id)
@@ -115,24 +133,33 @@ const Index = () => {
       if (projectsError) {
         console.error('==================== ERRO AO BUSCAR PROJETOS ====================');
         console.error('Erro:', projectsError);
+        console.error('Detalhes:', projectsError.details);
+        console.error('Hint:', projectsError.hint);
+        console.error('Código:', projectsError.code);
+        console.error('Mensagem:', projectsError.message);
         throw projectsError;
       }
 
       console.log('==================== PROJETOS ATUALIZADOS ====================');
-      console.log('Total de projetos:', projects.length);
-      setProjects(projects);
+      console.log('Total de projetos:', updatedProjects?.length);
+      console.log('IDs dos projetos:', updatedProjects?.map(p => p.id));
+      console.log('Projetos ordenados por:', updatedProjects?.map(p => ({ id: p.id, created_at: p.created_at })));
+      setProjects(updatedProjects || []);
+
+      console.log('==================== ATUALIZAÇÃO DE ESTADO CONCLUÍDA ====================');
 
     } catch (error) {
       console.error('==================== ERRO NO SALVAMENTO DO WORKFLOW ====================');
       console.error('Erro completo:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Tipo do erro:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('Mensagem do erro:', error instanceof Error ? error.message : String(error));
       
       toast({
         title: "Erro ao salvar workflow",
         description: error instanceof Error ? error.message : "Falha ao salvar workflow. Por favor, tente novamente.",
         variant: "destructive",
       });
-      throw error;
     }
   };
 
