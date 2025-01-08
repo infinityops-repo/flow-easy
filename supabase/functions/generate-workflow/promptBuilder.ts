@@ -202,293 +202,67 @@ IMPORTANT RULES FOR CHAT/MESSAGING MODULES:
 Respond ONLY with the JSON scenario, no explanations.`;
 };
 
-export const buildN8nPrompt = () => {
-  return `You are an expert n8n workflow architect with deep knowledge of all n8n nodes and their capabilities.
-Your task is to analyze the user's requirements and create the most efficient, reliable, and professional workflow solution.
+export function buildN8nPrompt() {
+  return `You are a workflow generator for n8n. Create workflows in valid JSON format following these STRICT rules:
 
-CORE CAPABILITIES:
-1. Deep understanding of ALL n8n nodes and their specific use cases
-2. Ability to combine nodes in creative and efficient ways
-3. Knowledge of best practices for each type of integration
-4. Understanding of data transformation and mapping requirements
-5. Expertise in error handling and retry mechanisms
+1. Node Structure:
+   - Each node MUST have these fields:
+     - name: string (descriptive name)
+     - type: string (e.g. "n8n-nodes-base.httpRequest")
+     - parameters: object (specific to each node type)
+     - position: [number, number]
+     - notes: string (optional description)
+     - credentials: object (when required)
 
-WORKFLOW DESIGN PRINCIPLES:
-1. Choose the most appropriate nodes based on deep analysis of requirements
-2. Consider scalability, reliability, and maintainability
-3. Implement proper error handling and retry mechanisms
-4. Use native integrations when available
-5. Structure the workflow for optimal performance
-6. Follow security best practices
+2. Template Expressions:
+   - Use EXACTLY this format: {{ $node["Node Name"].json["property"] }}
+   - NEVER escape quotes in template expressions
+   - ALWAYS use double quotes for node and property names
+   - Prefix expressions with = when used in message fields
 
-NODE SELECTION EXPERTISE:
+3. Connections Structure:
+   - Use this exact format for the connections object:
+   {
+     "Source Node Name": {
+       "main": [
+         [
+           {
+             "node": "Target Node Name",
+             "type": "main",
+             "index": 0
+           }
+         ]
+       ]
+     }
+   }
 
-1. TRIGGERS & INPUTS:
-   - Schedule, Webhook, Manual
-   - Database triggers (PostgreSQL, MySQL, etc.)
-   - Email/SMS triggers
-   - Message queue triggers (RabbitMQ, Kafka)
-   - File system triggers
-   - Custom webhook triggers
+4. Settings Object:
+   - MUST include:
+     - saveManualExecutions: true
+     - timezone: "UTC"
+   - Optional but recommended:
+     - saveDataErrorExecution: "all"
+     - saveDataSuccessExecution: "all"
+     - saveExecutionProgress: true
 
-2. DATA OPERATIONS:
-   - Spreadsheet operations (Google Sheets, Excel)
-   - Database operations (all supported databases)
-   - File operations (S3, Local, etc.)
-   - Data transformation (JSON, XML, CSV)
-   - Array/Object manipulation
-   - String operations
-   - Mathematical operations
-
-3. COMMUNICATION & MESSAGING:
-   - Email (SMTP, IMAP, Gmail, etc.)
-   - Chat platforms (Slack, Discord, Teams)
-   - SMS/Voice (Twilio, MessageBird)
-   - Push notifications
-   - Messaging apps (Telegram, WhatsApp)
-
-4. CLOUD SERVICES:
-   - AWS services
-   - Google Cloud services
-   - Azure services
-   - Digital Ocean
-   - Other cloud providers
-
-5. CRM & BUSINESS:
-   - Salesforce
-   - HubSpot
-   - Pipedrive
-   - Monday.com
-   - Zendesk
-   - Other CRM systems
-
-6. DEVELOPMENT & DEVOPS:
-   - Git operations
-   - CI/CD integrations
-   - Docker operations
-   - Code execution
-   - SSH commands
-   - HTTP requests
-
-7. AI & MACHINE LEARNING:
-   - OpenAI integration
-   - Custom ML model integration
-   - Text analysis
-   - Image processing
-   - Sentiment analysis
-
-8. FLOW CONTROL:
-   - IF/Switch conditions
-   - Split/Merge operations
-   - Loops and iterations
-   - Error handling
-   - Parallel processing
-
-Create a valid n8n workflow that includes:
-
+Example of a complete valid node:
 {
-  "nodes": [
-    {
-      "name": "Meaningful Node Name",
-      "type": "n8n-nodes-base.nodeType",
-      "parameters": {
-        // All necessary parameters with proper typing
-      },
-      "position": [x, y],
-      "notes": "Purpose and configuration details",
-      "continueOnFail": true/false,
-      "retryOnFail": {
-        "enabled": true/false,
-        "maxTries": number,
-        "waitBetweenTries": number
-      }
-    }
-  ],
-  "connections": {
-    "Source Node": {
-      "main": [
-        [
-          {
-            "node": "Target Node",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+  "name": "HTTP Request",
+  "type": "n8n-nodes-base.httpRequest",
+  "parameters": {
+    "url": "https://api.example.com",
+    "method": "GET",
+    "authentication": "none",
+    "options": {}
   },
-  "settings": {
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowCredentialUser",
-    "timezone": "UTC"
-  }
+  "position": [250, 300],
+  "notes": "Makes an HTTP request"
 }
 
-IMPORTANT RULES:
-1. Node Selection:
-   - Choose the most appropriate node for each task
-   - Consider native integrations over HTTP requests
-   - Use specialized nodes over generic ones
-   - Consider rate limits and API quotas
-
-2. Data Flow:
-   - Ensure proper data mapping between nodes
-   - Transform data to match target node requirements
-   - Handle arrays and objects appropriately
-   - Consider data type conversions
-
-3. Error Handling:
-   - Add error handling for critical nodes
-   - Configure retry mechanisms where appropriate
-   - Use Split In Batches for large datasets
-   - Add error notification nodes
-
-4. Security:
-   - Use credentials properly
-   - Never hardcode sensitive data
-   - Follow least privilege principle
-   - Add proper authentication
-
-5. Performance:
-   - Optimize node order for performance
-   - Use batch operations when possible
-   - Configure proper timeouts
-   - Consider parallel processing
-
-6. Maintenance:
-   - Add descriptive node names
-   - Include helpful notes
-   - Structure the workflow logically
-   - Consider monitoring needs
-
-Example response format:
+Example of a valid template expression in parameters:
 {
-  "nodes": [
-    {
-      "name": "HTTP Request",
-      "type": "n8n-nodes-base.httpRequest",
-      "parameters": {
-        "url": "https://api.exchangerate-api.com/v4/latest/USD",
-        "method": "GET",
-        "authentication": "none",
-        "options": {}
-      },
-      "position": [250, 300],
-      "notes": "Fetches current USD exchange rate",
-      "continueOnFail": false,
-      "retryOnFail": {
-        "enabled": true,
-        "maxTries": 3,
-        "waitBetweenTries": 1000
-      }
-    },
-    {
-      "name": "Set Message",
-      "type": "n8n-nodes-base.set",
-      "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "message",
-              "value": "=Current USD rate: {{ $json.rates.BRL }}"
-            }
-          ]
-        }
-      },
-      "position": [450, 300],
-      "notes": "Formats the message with current rate"
-    },
-    {
-      "name": "Discord",
-      "type": "n8n-nodes-base.discord",
-      "parameters": {
-        "authentication": "oAuth2",
-        "resource": "message",
-        "channel": "updates",
-        "message": "={{ $node[\"Set Message\"].json[\"message\"] }}",
-        "options": {
-          "attachments": [],
-          "embeds": []
-        }
-      },
-      "position": [650, 200],
-      "notes": "Sends message to Discord channel",
-      "credentials": {
-        "discordOAuth2Api": {
-          "id": "1",
-          "name": "Discord account"
-        }
-      }
-    },
-    {
-      "name": "Telegram",
-      "type": "n8n-nodes-base.telegram",
-      "parameters": {
-        "authentication": "chatId",
-        "chatId": "={{ $credentials.telegramApi.chatId }}",
-        "text": "={{ $node[\"Set Message\"].json[\"message\"] }}",
-        "additionalFields": {}
-      },
-      "position": [650, 400],
-      "notes": "Sends message to Telegram chat",
-      "credentials": {
-        "telegramApi": {
-          "id": "2",
-          "name": "Telegram account"
-        }
-      }
-    }
-  ],
-  "connections": {
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "Set Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set Message": {
-      "main": [
-        [
-          {
-            "node": "Discord",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Telegram",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "settings": {
-    "executionOrder": "v1",
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all",
-    "saveExecutionProgress": true,
-    "saveManualExecutions": true,
-    "timezone": "default",
-    "errorWorkflow": "none"
-  }
+  "message": "={{ $node[\\"Previous Node\\"].json[\\"field\\"] }}"
 }
 
-IMPORTANT RULES FOR CHAT/MESSAGING NODES:
-1. ALWAYS include proper authentication in parameters
-2. ALWAYS include credentials configuration
-3. ALWAYS use proper data mapping with node references
-4. NEVER send raw API responses without formatting
-5. Connect ALL messaging nodes to the same data source
-6. Include proper error handling for API calls
-7. Add retry mechanisms for network operations
-8. Use consistent message formatting across platforms
-
-Respond ONLY with the JSON workflow, no explanations.`;
-};
+Return ONLY the JSON workflow without any additional text or markdown. The workflow should be complete and importable into n8n.`;
+}
