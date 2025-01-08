@@ -130,9 +130,26 @@ serve(async (req) => {
           validateN8nWorkflow(parsedWorkflow);
         }
 
-        // Garante que o workflow está em formato de string JSON válido
-        const formattedWorkflow = JSON.stringify(parsedWorkflow);
-        console.log('Workflow formatado:', formattedWorkflow);
+        // Garante que as conexões estão completas (sem [Object])
+        if (parsedWorkflow.connections) {
+          Object.keys(parsedWorkflow.connections).forEach(key => {
+            const connection = parsedWorkflow.connections[key];
+            if (connection.main) {
+              connection.main = connection.main.map((mainArr: any[]) => 
+                mainArr.map((conn: any) => {
+                  if (conn && typeof conn === 'object') {
+                    return {
+                      node: conn.node || '',
+                      type: conn.type || 'main',
+                      index: conn.index || 0
+                    };
+                  }
+                  return conn;
+                })
+              );
+            }
+          });
+        }
 
         // Salva no cache
         const { error: insertError } = await supabase
@@ -140,20 +157,16 @@ serve(async (req) => {
           .insert([{
             prompt,
             platform,
-            workflow: parsedWorkflow // Salva o objeto original no cache
+            workflow: parsedWorkflow
           }]);
 
         if (insertError) {
           console.error('Erro ao salvar no cache:', insertError);
-        } else {
-          console.log('Workflow salvo no cache com sucesso');
-          console.log('Workflow salvo:', parsedWorkflow);
         }
 
-        // Retorna o workflow validado como objeto
         return new Response(
           JSON.stringify({ 
-            workflow: parsedWorkflow, // Retorna o objeto original
+            workflow: parsedWorkflow,
             shareableUrl: null,
             fromCache: false
           }),
