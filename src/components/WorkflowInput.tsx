@@ -44,12 +44,18 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       });
 
       if (error) {
+        console.error('Erro na função generate-workflow:', error);
         throw error;
       }
 
       if (!data || !data.workflow) {
+        console.error('Resposta inválida:', data);
         throw new Error('Resposta inválida do servidor');
       }
+
+      console.log('Workflow gerado:', data.workflow);
+      console.log('Tipo do workflow gerado:', typeof data.workflow);
+      console.log('Estrutura do workflow:', JSON.stringify(data.workflow, null, 2));
 
       // Armazena o workflow como está para a interface
       setGeneratedWorkflow(data.workflow);
@@ -58,6 +64,11 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       
       // Notifica o componente pai sobre o novo workflow
       if (onWorkflowGenerated) {
+        console.log('Chamando onWorkflowGenerated com:', {
+          workflow: data.workflow,
+          prompt,
+          platform
+        });
         onWorkflowGenerated(data.workflow, prompt, platform);
       }
 

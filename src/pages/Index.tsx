@@ -81,6 +81,9 @@ const Index = () => {
         throw new Error('Usuário não autenticado');
       }
 
+      console.log('Workflow recebido:', workflow);
+      console.log('Tipo do workflow:', typeof workflow);
+
       const newProject = {
         user_id: session.user.id,
         title: `${platform}-workflow-${projects.length + 1}`,
@@ -91,7 +94,8 @@ const Index = () => {
         is_private: true
       };
 
-      console.log('Salvando projeto:', newProject);
+      console.log('Projeto a ser salvo:', newProject);
+      console.log('Tipo do workflow no projeto:', typeof newProject.workflow);
 
       const { data, error } = await supabase
         .from('projects')
@@ -101,10 +105,14 @@ const Index = () => {
 
       if (error) {
         console.error('Erro detalhado:', error);
+        console.error('Código do erro:', error.code);
+        console.error('Mensagem do erro:', error.message);
+        console.error('Detalhes do erro:', error.details);
         throw error;
       }
 
-      console.log('Projeto salvo:', data);
+      console.log('Resposta do Supabase:', data);
+      console.log('Tipo do workflow retornado:', typeof data.workflow);
 
       const formattedProject: Project = {
         id: data.id,
