@@ -86,77 +86,106 @@ Sempre que fizer alterações no código, siga esta sequência:
 ## Database Structure
 
 ### Schemas
-- `public`: Main schema containing all system tables
-- `auth`: Supabase Auth schema containing the users table (`auth.users`)
+- `public`: Schema principal contendo todas as tabelas do sistema
+- `auth`: Schema do Supabase Auth contendo a tabela de usuários (`auth.users`)
 
-### Tables (schema: public)
+### Tabelas (schema: public)
 
-#### plans
-Stores available subscription plans
-- `id`: TEXT (PK) - Unique plan identifier (e.g., 'free', 'pro')
-- `name`: TEXT - Plan name
-- `description`: TEXT - Plan description
-- `price`: DECIMAL(10,2) - Plan price
-- `workflow_limit`: INTEGER - Workflow limit (NULL = unlimited)
-- `features`: JSONB - List of plan features
+#### workflow_cache
+Armazena cache de workflows gerados
+- `id`: UUID (PK) - Identificador único
+- `prompt`: TEXT - Prompt usado para gerar o workflow
+- `platform`: TEXT - Plataforma do workflow (n8n, make)
+- `workflow`: JSONB - Workflow gerado em formato JSON
+- `created_at`: TIMESTAMPTZ - Data de criação
 
-#### subscriptions
-Manages user subscriptions
-- `id`: UUID (PK) - Unique subscription identifier
-- `user_id`: UUID (FK) - Reference to `auth.users(id)`
-- `plan_id`: TEXT (FK) - Reference to `plans(id)`
-- `status`: TEXT - Subscription status (default: 'active')
-- `stripe_subscription_id`: TEXT - Stripe subscription ID
-- `stripe_customer_id`: TEXT - Stripe customer ID
-- Period and control fields
-
-#### usage_logs
-Records workflow usage per user
-- `id`: UUID (PK) - Unique record identifier
-- `user_id`: UUID (FK) - Reference to `auth.users(id)`
-- `subscription_id`: UUID (FK) - Reference to `subscriptions(id)`
-- `workflows_used`: INTEGER - Number of workflows used
-- `period_start`: TIMESTAMP - Period start
-- `period_end`: TIMESTAMP - Period end
-
-### Security Policies (RLS)
+#### projects
+Armazena os projetos/workflows dos usuários
+- `id`: UUID (PK) - Identificador único
+- `user_id`: UUID (FK) - Referência para `auth.users(id)`
+- `title`: TEXT - Título do projeto
+- `image`: TEXT - URL da imagem do projeto
+- `prompt`: TEXT - Prompt usado para gerar o workflow
+- `platform`: TEXT - Plataforma do workflow (n8n, make)
+- `workflow`: JSONB - Workflow em formato JSON
+- `is_private`: BOOLEAN - Se o projeto é privado
+- `created_at`: TIMESTAMPTZ - Data de criação
+- `updated_at`: TIMESTAMPTZ - Data de atualização
 
 #### plans
-- SELECT: Allowed for authenticated users
+Armazena os planos disponíveis
+- `id`: TEXT (PK) - Identificador único do plano (ex: 'free', 'pro')
+- `name`: TEXT - Nome do plano
+- `description`: TEXT - Descrição do plano
+- `price`: DECIMAL(10,2) - Preço do plano (default: 0)
+- `workflow_limit`: INTEGER - Limite de workflows (NULL = ilimitado)
+- `features`: JSONB - Lista de funcionalidades do plano
+- `created_at`: TIMESTAMPTZ - Data de criação
+- `updated_at`: TIMESTAMPTZ - Data de atualização
 
 #### subscriptions
-- SELECT: Users can only view their own subscriptions
-- INSERT: Allowed for postgres role (used by trigger)
+Gerencia as assinaturas dos usuários
+- `id`: UUID (PK) - Identificador único da assinatura
+- `user_id`: UUID (FK) - Referência para `auth.users(id)`
+- `plan_id`: TEXT (FK) - Referência para `plans(id)`
+- `status`: TEXT - Status da assinatura (default: 'active')
+- `stripe_subscription_id`: TEXT - ID da assinatura no Stripe
+- `stripe_customer_id`: TEXT - ID do cliente no Stripe
+- `current_period_start`: TIMESTAMPTZ - Início do período atual
+- `current_period_end`: TIMESTAMPTZ - Fim do período atual
+- `cancel_at_period_end`: BOOLEAN - Se cancela no fim do período
+- `created_at`: TIMESTAMPTZ - Data de criação
+- `updated_at`: TIMESTAMPTZ - Data de atualização
 
 #### usage_logs
-- SELECT: Users can only view their own logs
-- INSERT: Allowed for postgres role (used by trigger)
+Registra o uso de workflows por usuário
+- `id`: UUID (PK) - Identificador único do registro
+- `user_id`: UUID (FK) - Referência para `auth.users(id)`
+- `subscription_id`: UUID (FK) - Referência para `subscriptions(id)`
+- `workflows_used`: INTEGER - Número de workflows usados
+- `period_start`: TIMESTAMPTZ - Início do período
+- `period_end`: TIMESTAMPTZ - Fim do período
+- `created_at`: TIMESTAMPTZ - Data de criação
+- `updated_at`: TIMESTAMPTZ - Data de atualização
 
-### Automation
+### Políticas de Segurança (RLS)
+
+#### plans
+- SELECT: Permitido para usuários autenticados
+
+#### subscriptions
+- SELECT: Usuários só podem ver suas próprias assinaturas
+- INSERT: Permitido para role postgres (usado pelo trigger)
+
+#### usage_logs
+- SELECT: Usuários só podem ver seus próprios logs
+- INSERT: Permitido para role postgres (usado pelo trigger)
+
+### Automações
 
 #### Trigger: on_auth_user_created
-- Executed: AFTER INSERT ON auth.users
-- Function: handle_new_user()
-- Purpose: Automatically initializes a free subscription when a new user is created
+- Executado: AFTER INSERT ON auth.users
+- Função: handle_new_user()
+- Propósito: Inicializa automaticamente uma assinatura gratuita quando um novo usuário é criado
 
-#### Function: handle_new_user()
-- Type: TRIGGER FUNCTION
-- Security: SECURITY DEFINER
-- Actions:
-  1. Creates a subscription in the 'free' plan for the new user
-  2. Creates an initial usage_log record for the current period
-- Note: Uses explicit reference to public schema to avoid context errors
+#### Função: handle_new_user()
+- Tipo: TRIGGER FUNCTION
+- Segurança: SECURITY DEFINER
+- Ações:
+  1. Cria uma assinatura no plano 'free' para o novo usuário
+  2. Cria um registro inicial de usage_log para o período atual
+- Nota: Usa referência explícita ao schema public para evitar erros de contexto
 
-### Default Plans
+### Planos Padrão
 1. Free
-   - Price: $0
-   - Limit: 5 workflows
-   - Features: ["Basic templates", "Community support"]
+   - Preço: $0
+   - Limite: 5 workflows
+   - Funcionalidades: ["Basic templates", "Community support"]
 
 2. Pro
-   - Price: $12
-   - Limit: Unlimited
-   - Features: ["Premium templates", "Priority support", "Custom integrations"]
+   - Preço: $12
+   - Limite: Ilimitado
+   - Funcionalidades: ["Premium templates", "Priority support", "Custom integrations"]
 
 ## Development
 
@@ -166,6 +195,6 @@ After making changes to the database or functions:
 ```bash
 supabase functions deploy generate-workflow
 git add .
-git commit -m "feat/fix: clear description of the change"
+git commit -m "feat/fix: descrição clara da alteração"
 git push origin main
 ```
