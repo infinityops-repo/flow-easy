@@ -22,9 +22,12 @@ const Auth = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('Checking auth session...');
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current session:', session);
       if (session) {
-        navigate('/');
+        console.log('Session found, redirecting to dashboard...');
+        navigate('/dashboard');
       }
     };
     checkAuth();
@@ -32,7 +35,6 @@ const Auth = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -42,32 +44,45 @@ const Auth = () => {
           password,
         });
 
-        if (signUpError) throw signUpError;
+        if (signUpError) {
+          console.error('Signup error:', signUpError);
+          throw signUpError;
+        }
 
         if (signUpData.user) {
-          // Initialize user subscription
-          const { error: initError } = await supabase.functions.invoke('initialize-user', {
-            body: {},
+          toast({
+            title: "Sucesso",
+            description: "Por favor, verifique seu email para confirmar sua conta.",
           });
-
-          if (initError) {
-            console.error('Error initializing user:', initError);
-            throw new Error('Erro ao inicializar usuário');
-          }
         }
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        console.log('Attempting login...');
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (signInError) throw signInError;
-      }
+        if (signInError) {
+          console.error('Login error:', signInError);
+          throw signInError;
+        }
 
-      router.push('/dashboard');
+        console.log('Login successful:', data);
+        if (data?.user) {
+          console.log('Redirecting to dashboard...');
+          navigate('/dashboard');
+        } else {
+          console.error('No user data after login');
+          throw new Error('Erro ao fazer login. Por favor, tente novamente.');
+        }
+      }
     } catch (error: any) {
       console.error('Auth error:', error);
-      setError(error.message || 'Ocorreu um erro durante a autenticação');
+      toast({
+        title: "Erro",
+        description: error.message || 'Ocorreu um erro durante a autenticação',
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
