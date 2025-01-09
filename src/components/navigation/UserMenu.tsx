@@ -23,11 +23,11 @@ export const UserMenu = ({ userName, onNavigate, onSignOut }: UserMenuProps) => 
         <ChevronDown className="h-4 w-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onNavigate}>Perfil</DropdownMenuItem>
-        <DropdownMenuItem onClick={onNavigate}>Configurações</DropdownMenuItem>
-        <DropdownMenuItem onClick={onSignOut}>Sair</DropdownMenuItem>
+        <DropdownMenuItem onClick={onNavigate}>Profile</DropdownMenuItem>
+        <DropdownMenuItem onClick={onNavigate}>Settings</DropdownMenuItem>
+        <DropdownMenuItem onClick={onSignOut}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

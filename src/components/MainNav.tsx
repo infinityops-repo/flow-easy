@@ -57,9 +57,9 @@ const MainNav = () => {
                   <Button variant="ghost" className="justify-start" onClick={handleNavigation}>News</Button>
                   <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Support</Button>
                   <div className="border-t border-white/10 pt-4 mt-4">
-                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Perfil</Button>
-                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Configurações</Button>
-                    <Button variant="ghost" className="justify-start text-red-500" onClick={handleSignOut}>Sair</Button>
+                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Profile</Button>
+                    <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Settings</Button>
+                    <Button variant="ghost" className="justify-start text-red-500" onClick={handleSignOut}>Sign out</Button>
                   </div>
                 </div>
               </SheetContent>

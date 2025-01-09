@@ -24,8 +24,8 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
   const handleGenerateWorkflow = async () => {
     if (!prompt.trim()) {
       toast({
-        title: "Erro",
-        description: "Por favor, insira uma descrição para seu workflow",
+        title: "Error",
+        description: "Please enter a description for your workflow",
         variant: "destructive",
       });
       return;
@@ -41,7 +41,7 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       console.log('Sessão:', session?.user?.id);
       
       if (!session?.access_token) {
-        throw new Error('Usuário não autenticado');
+        throw new Error('User not authenticated');
       }
 
       console.log('==================== CHAMANDO FUNÇÃO GENERATE-WORKFLOW ====================');
@@ -58,8 +58,8 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       }
 
       if (!data || !data.workflow) {
-        console.error('Resposta inválida:', data);
-        throw new Error('Resposta inválida do servidor');
+        console.error('Invalid response:', data);
+        throw new Error('Invalid server response');
       }
 
       console.log('==================== WORKFLOW GERADO COM SUCESSO ====================');
@@ -93,8 +93,8 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       }
 
       toast({
-        title: "Sucesso",
-        description: `Workflow ${platform === 'make' ? 'Make' : 'n8n'} gerado com sucesso!`,
+        title: "Success",
+        description: `${platform === 'make' ? 'Make' : 'n8n'} workflow generated successfully!`,
       });
 
     } catch (error) {
@@ -103,8 +103,8 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       
       toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Falha ao gerar workflow. Por favor, tente novamente.",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate workflow. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -122,8 +122,8 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
     
     navigator.clipboard.writeText(workflowString);
     toast({
-      title: "Copiado!",
-      description: `JSON do workflow ${platform === 'make' ? 'Make' : 'n8n'} copiado para a área de transferência`,
+      title: "Copied!",
+      description: `${platform === 'make' ? 'Make' : 'n8n'} workflow JSON copied to clipboard`,
     });
   };
 
@@ -143,9 +143,9 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
 
   const getPlatformInstructions = () => {
     if (platform === 'make') {
-      return "Para importar no Make (Integromat):\n1. Acesse make.com\n2. Clique em 'Criar um novo cenário'\n3. Clique no menu '...' (três pontos)\n4. Selecione 'Importar Blueprint'\n5. Cole o JSON gerado";
+      return "To import in Make (Integromat):\n1. Go to make.com\n2. Click on 'Create a new scenario'\n3. Click on the '...' (three dots) menu\n4. Select 'Import Blueprint'\n5. Paste the generated JSON";
     }
-    return "Para importar no n8n:\n1. Acesse seu n8n\n2. Clique em 'Workflows'\n3. Clique em 'Import from File'\n4. Cole o JSON gerado";
+    return "To import in n8n:\n1. Access your n8n\n2. Click on 'Workflows'\n3. Click on 'Import from File'\n4. Paste the generated JSON";
   };
 
   return (
@@ -154,7 +154,7 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
         <div className="flex flex-col space-y-4">
           <Input
             className="w-full bg-background/80 border-0 placeholder:text-muted-foreground/70 text-base h-12 px-4 resize-y min-h-[3rem] max-h-[12rem] rounded-md"
-            placeholder={`Peça ao FlowEasy para criar um workflow ${platform === 'make' ? 'Make' : 'n8n'} para...`}
+            placeholder={`Ask FlowEasy to create a ${platform === 'make' ? 'Make' : 'n8n'} workflow for...`}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
@@ -178,7 +178,7 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
               onClick={handleGenerateWorkflow}
               disabled={isLoading}
             >
-              {isLoading ? "Gerando..." : "Criar →"}
+              {isLoading ? "Generating..." : "Create →"}
             </Button>
           </div>
         </div>

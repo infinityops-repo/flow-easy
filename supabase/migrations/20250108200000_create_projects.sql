@@ -37,34 +37,34 @@ create trigger projects_handle_updated_at
 -- Permissões
 alter table public.projects enable row level security;
 
--- Políticas de acesso
-create policy "Usuários podem ver seus próprios projetos"
+-- Access policies
+create policy "Users can view their own projects"
 on public.projects for select
 to authenticated
 using (auth.uid() = user_id);
 
-create policy "Usuários podem inserir seus próprios projetos"
+create policy "Users can insert their own projects"
 on public.projects for insert
 to authenticated
 with check (auth.uid() = user_id);
 
-create policy "Usuários podem atualizar seus próprios projetos"
+create policy "Users can update their own projects"
 on public.projects for update
 to authenticated
 using (auth.uid() = user_id);
 
-create policy "Usuários podem deletar seus próprios projetos"
+create policy "Users can delete their own projects"
 on public.projects for delete
 to authenticated
 using (auth.uid() = user_id);
 
--- Comentários
-comment on table public.projects is 'Projetos salvos pelos usuários';
-comment on column public.projects.user_id is 'ID do usuário dono do projeto';
-comment on column public.projects.title is 'Título do projeto';
-comment on column public.projects.image is 'URL da imagem do projeto';
-comment on column public.projects.prompt is 'Prompt usado para gerar o workflow';
-comment on column public.projects.platform is 'Plataforma do workflow (n8n ou make)';
+-- Comments
+comment on table public.projects is 'Projects saved by users';
+comment on column public.projects.user_id is 'ID of the user who owns the project';
+comment on column public.projects.title is 'Project title';
+comment on column public.projects.image is 'Project image URL';
+comment on column public.projects.prompt is 'Prompt used to generate the workflow';
+comment on column public.projects.platform is 'Workflow platform (n8n or make)';
 comment on column public.projects.workflow is 'JSON do workflow';
 comment on column public.projects.is_private is 'Se o projeto é privado';
 comment on column public.projects.created_at is 'Data e hora de criação';

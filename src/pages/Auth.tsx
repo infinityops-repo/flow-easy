@@ -22,8 +22,8 @@ const Auth = () => {
       async (event, session) => {
         if (event === "SIGNED_IN") {
           toast({
-            title: "Login realizado com sucesso",
-            description: "Bem-vindo de volta!",
+            title: "Successfully logged in",
+            description: "Welcome back!",
           })
           navigate("/")
         } else if (event === "SIGNED_OUT") {
@@ -50,10 +50,10 @@ const Auth = () => {
             </span>
           </div>
           <h2 className="text-2xl font-bold gradient-text">
-            Bem-vindo ao FlowEasy
+            Welcome to FlowEasy
           </h2>
           <p className="mt-2 text-muted-foreground">
-            Entre para começar a criar seus fluxos de trabalho
+            Sign in to start creating your workflows
           </p>
         </div>
 
@@ -82,23 +82,23 @@ const Auth = () => {
               variables: {
                 sign_in: {
                   email_label: 'Email',
-                  password_label: 'Senha',
-                  email_input_placeholder: 'Seu endereço de email',
-                  password_input_placeholder: 'Sua senha',
-                  button_label: 'Entrar',
-                  loading_button_label: 'Entrando...',
-                  social_provider_text: 'Entrar com {{provider}}',
-                  link_text: 'Já tem uma conta? Entre',
+                  password_label: 'Password',
+                  email_input_placeholder: 'Your email address',
+                  password_input_placeholder: 'Your password',
+                  button_label: 'Sign in',
+                  loading_button_label: 'Signing in...',
+                  social_provider_text: 'Sign in with {{provider}}',
+                  link_text: 'Already have an account? Sign in',
                 },
                 sign_up: {
                   email_label: 'Email',
-                  password_label: 'Senha',
-                  email_input_placeholder: 'Seu endereço de email',
-                  password_input_placeholder: 'Escolha uma senha',
-                  button_label: 'Criar conta',
-                  loading_button_label: 'Criando conta...',
-                  social_provider_text: 'Criar conta com {{provider}}',
-                  link_text: 'Não tem uma conta? Cadastre-se',
+                  password_label: 'Password',
+                  email_input_placeholder: 'Your email address',
+                  password_input_placeholder: 'Choose a password',
+                  button_label: 'Create account',
+                  loading_button_label: 'Creating account...',
+                  social_provider_text: 'Create account with {{provider}}',
+                  link_text: 'Don\'t have an account? Sign up',
                 },
               },
             }}

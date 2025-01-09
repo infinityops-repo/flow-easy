@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export const useAuthManagement = () => {
-  const [userName, setUserName] = useState<string>("Usuário");
+  const [userName, setUserName] = useState<string>("User");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,8 +39,8 @@ export const useAuthManagement = () => {
         }
 
         if (session?.user) {
-          // Usar o e-mail do usuário diretamente da sessão
-          setUserName(session.user.email || 'Usuário');
+          // Use the user's email directly from the session
+          setUserName(session.user.email || 'User');
         }
       } catch (error) {
         console.error('Error fetching user session:', error);
@@ -64,14 +64,14 @@ export const useAuthManagement = () => {
           return;
         }
         toast({
-          title: "Erro",
-          description: "Erro ao realizar logout. Tente novamente.",
+          title: "Error",
+          description: "Error during logout. Please try again.",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Sucesso",
-          description: "Logout realizado com sucesso",
+          title: "Success",
+          description: "Successfully logged out",
         });
         navigate('/auth');
       }
