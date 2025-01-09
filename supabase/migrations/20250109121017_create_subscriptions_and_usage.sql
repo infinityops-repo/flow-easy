@@ -53,12 +53,24 @@ DECLARE
   subscription_id UUID;
   v_error_message TEXT;
 BEGIN
+  -- Log the start of the function
+  RAISE LOG 'Starting handle_new_user for user_id: %', NEW.id;
+
   BEGIN
+    -- Log attempt to create subscription
+    RAISE LOG 'Attempting to create subscription for user_id: %', NEW.id;
+    
     -- Create subscription with RETURNING
     INSERT INTO subscriptions (user_id, plan_id)
     VALUES (NEW.id, 'free')
     RETURNING id INTO subscription_id;
 
+    -- Log successful subscription creation
+    RAISE LOG 'Successfully created subscription with id: % for user_id: %', subscription_id, NEW.id;
+
+    -- Log attempt to create usage log
+    RAISE LOG 'Attempting to create usage log for subscription_id: %', subscription_id;
+    
     -- Create usage log
     INSERT INTO usage_logs (user_id, subscription_id, period_start, period_end)
     VALUES (
@@ -68,11 +80,19 @@ BEGIN
       (date_trunc('month', now()) + interval '1 month' - interval '1 second')
     );
 
+    -- Log successful usage log creation
+    RAISE LOG 'Successfully created usage log for subscription_id: %', subscription_id;
+
     RETURN NEW;
   EXCEPTION WHEN OTHERS THEN
-    GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT;
-    RAISE WARNING 'Error in handle_new_user: %', v_error_message;
-    -- Não vamos retornar NEW aqui para garantir que o erro seja propagado
+    GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT,
+                          v_detail = PG_EXCEPTION_DETAIL,
+                          v_hint = PG_EXCEPTION_HINT;
+    
+    RAISE LOG 'Error in handle_new_user for user_id %: %, Detail: %, Hint: %', 
+              NEW.id, v_error_message, v_detail, v_hint;
+              
+    -- Re-raise the error to prevent user creation if subscription setup fails
     RAISE EXCEPTION 'Failed to initialize user subscription: %', v_error_message;
   END;
 END;
@@ -256,6 +276,10 @@ CREATE POLICY "Service role can delete subscriptions"
 ON subscriptions FOR DELETE
 TO service_role
 USING (true);
+
+-- Allow trigger function to access all tables
+ALTER TABLE subscriptions SECURITY DEFINER;
+ALTER TABLE usage_logs SECURITY DEFINER;
 
 -- Create RLS policies for auth.users
 CREATE POLICY "Users can view their own auth data"
