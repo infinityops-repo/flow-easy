@@ -248,3 +248,16 @@ BEGIN
   RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Allow service role to update subscriptions
+CREATE POLICY "Service role can update subscriptions"
+ON subscriptions FOR UPDATE
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+-- Allow service role to delete subscriptions
+CREATE POLICY "Service role can delete subscriptions"
+ON subscriptions FOR DELETE
+TO service_role
+USING (true);
