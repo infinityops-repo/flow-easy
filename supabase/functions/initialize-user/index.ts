@@ -13,13 +13,19 @@ serve(async (req) => {
 
   try {
     // Criar cliente Supabase usando service role
-    const supabaseClient = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
     // Obter usuário autenticado
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
       req.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
     )
 
@@ -27,8 +33,10 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
+    console.log('Usuário autenticado:', user.id)
+
     // Criar assinatura
-    const { data: subscription, error: subscriptionError } = await supabaseClient
+    const { data: subscription, error: subscriptionError } = await supabaseAdmin
       .from('subscriptions')
       .insert({
         user_id: user.id,
@@ -37,10 +45,15 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (subscriptionError) throw subscriptionError
+    if (subscriptionError) {
+      console.error('Erro ao criar assinatura:', subscriptionError)
+      throw subscriptionError
+    }
+
+    console.log('Assinatura criada:', subscription.id)
 
     // Criar log de uso
-    const { error: usageError } = await supabaseClient
+    const { error: usageError } = await supabaseAdmin
       .from('usage_logs')
       .insert({
         user_id: user.id,
@@ -50,7 +63,12 @@ serve(async (req) => {
         period_end: new Date(new Date(new Date().setMonth(new Date().getMonth() + 1)).setDate(0)).toISOString()
       })
 
-    if (usageError) throw usageError
+    if (usageError) {
+      console.error('Erro ao criar log de uso:', usageError)
+      throw usageError
+    }
+
+    console.log('Log de uso criado com sucesso')
 
     return new Response(
       JSON.stringify({ status: 'success', subscription }),
