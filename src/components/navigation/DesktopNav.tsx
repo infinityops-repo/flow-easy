@@ -6,29 +6,17 @@ import {
   MenubarMenu,
   MenubarTrigger,
 } from "@/components/ui/menubar";
+import { Button } from "@/components/ui/button";
 
 interface DesktopNavProps {
-  onNavigate: () => void;
+  onNavigate: (path: string) => void;
 }
 
 export const DesktopNav = ({ onNavigate }: DesktopNavProps) => {
   return (
-    <Menubar className="border-none bg-transparent">
-      <MenubarMenu>
-        <MenubarTrigger className="font-medium" onClick={onNavigate}>News</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem onClick={onNavigate}>Latest Updates</MenubarItem>
-          <MenubarItem onClick={onNavigate}>Blog</MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-
-      <MenubarMenu>
-        <MenubarTrigger className="font-medium" onClick={onNavigate}>Support</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem onClick={onNavigate}>Help Center</MenubarItem>
-          <MenubarItem onClick={onNavigate}>Contact Us</MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-    </Menubar>
+    <nav className="flex items-center gap-6">
+      <Button variant="ghost" onClick={() => onNavigate('/news')}>News</Button>
+      <Button variant="ghost" onClick={() => onNavigate('/support')}>Support</Button>
+    </nav>
   );
 };

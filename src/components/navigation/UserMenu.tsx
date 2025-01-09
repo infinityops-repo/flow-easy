@@ -11,7 +11,7 @@ import { ChevronDown } from 'lucide-react';
 
 interface UserMenuProps {
   userName: string;
-  onNavigate: () => void;
+  onNavigate: (path: string) => void;
   onSignOut: () => void;
 }
 
@@ -25,8 +25,8 @@ export const UserMenu = ({ userName, onNavigate, onSignOut }: UserMenuProps) => 
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onNavigate}>Profile</DropdownMenuItem>
-        <DropdownMenuItem onClick={onNavigate}>Settings</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate('/profile')}>Profile</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNavigate('/settings')}>Settings</DropdownMenuItem>
         <DropdownMenuItem onClick={onSignOut}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import Index from "./pages/Index"
 import Auth from "./pages/Auth"
+import { SettingsPage } from '@/components/SettingsPage'
 import './App.css'
 
 const queryClient = new QueryClient({
@@ -63,6 +64,7 @@ const App = () => {
         <Router>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="*"
               element={
