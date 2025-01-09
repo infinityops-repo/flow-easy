@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export const useAuthManagement = () => {
   const [userName, setUserName] = useState<string>("Usuário");
@@ -39,42 +39,16 @@ export const useAuthManagement = () => {
         }
 
         if (session?.user) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('full_name, username')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (error) {
-            console.error('Error fetching profile:', error);
-            if (error.code === 'PGRST301') {
-              console.log('Session expired, signing out');
-              handleSignOut();
-            }
-            return;
-          }
-
-          if (profile) {
-            setUserName(profile.full_name || profile.username || 'Usuário');
-          }
+          // Usar o e-mail do usuário diretamente da sessão
+          setUserName(session.user.email || 'Usuário');
         }
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('Error fetching user session:', error);
+        handleSignOut();
       }
     };
 
     fetchUserProfile();
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        fetchUserProfile();
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [navigate]);
 
   const handleSignOut = async () => {
@@ -89,9 +63,16 @@ export const useAuthManagement = () => {
           navigate('/auth');
           return;
         }
-        toast.error('Erro ao realizar logout. Tente novamente.');
+        toast({
+          title: "Erro",
+          description: "Erro ao realizar logout. Tente novamente.",
+          variant: "destructive",
+        });
       } else {
-        toast.success('Logout realizado com sucesso');
+        toast({
+          title: "Sucesso",
+          description: "Logout realizado com sucesso",
+        });
         navigate('/auth');
       }
     } catch (error) {
