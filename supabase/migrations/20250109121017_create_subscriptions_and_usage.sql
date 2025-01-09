@@ -47,12 +47,18 @@ INSERT INTO plans (id, name, description, price, workflow_limit, features) VALUE
 CREATE OR REPLACE FUNCTION handle_new_user() 
 RETURNS TRIGGER 
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth
+LANGUAGE plpgsql
 AS $$
 DECLARE
   subscription_id UUID;
   v_error_message TEXT;
+  v_detail TEXT;
+  v_hint TEXT;
 BEGIN
+  -- Set role to service_role to bypass RLS
+  SET LOCAL ROLE service_role;
+  
   -- Log the start of the function
   RAISE LOG 'Starting handle_new_user for user_id: %', NEW.id;
 
@@ -61,7 +67,7 @@ BEGIN
     RAISE LOG 'Attempting to create subscription for user_id: %', NEW.id;
     
     -- Create subscription with RETURNING
-    INSERT INTO subscriptions (user_id, plan_id)
+    INSERT INTO public.subscriptions (user_id, plan_id)
     VALUES (NEW.id, 'free')
     RETURNING id INTO subscription_id;
 
@@ -72,7 +78,7 @@ BEGIN
     RAISE LOG 'Attempting to create usage log for subscription_id: %', subscription_id;
     
     -- Create usage log
-    INSERT INTO usage_logs (user_id, subscription_id, period_start, period_end)
+    INSERT INTO public.usage_logs (user_id, subscription_id, period_start, period_end)
     VALUES (
       NEW.id,
       subscription_id,
@@ -83,6 +89,9 @@ BEGIN
     -- Log successful usage log creation
     RAISE LOG 'Successfully created usage log for subscription_id: %', subscription_id;
 
+    -- Reset role
+    RESET ROLE;
+
     RETURN NEW;
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT,
@@ -92,23 +101,19 @@ BEGIN
     RAISE LOG 'Error in handle_new_user for user_id %: %, Detail: %, Hint: %', 
               NEW.id, v_error_message, v_detail, v_hint;
               
+    -- Reset role even on error
+    RESET ROLE;
+              
     -- Re-raise the error to prevent user creation if subscription setup fails
     RAISE EXCEPTION 'Failed to initialize user subscription: %', v_error_message;
   END;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- Add unique constraint to usage_logs if not exists
-DO $$ 
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'usage_logs_subscription_id_period_start_period_end_key'
-  ) THEN
-    ALTER TABLE usage_logs 
-    ADD CONSTRAINT usage_logs_subscription_id_period_start_period_end_key 
-    UNIQUE (subscription_id, period_start, period_end);
-  END IF;
-END $$;
+-- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
 -- Drop and recreate trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
