@@ -80,3 +80,92 @@ Sempre que fizer alterações no código, siga esta sequência:
    ```
 
 ⚠️ IMPORTANTE: Nunca pule nenhum desses passos! A ordem é essencial para manter a consistência entre ambientes.
+
+# FlowEasy
+
+## Database Structure
+
+### Schemas
+- `public`: Main schema containing all system tables
+- `auth`: Supabase Auth schema containing the users table (`auth.users`)
+
+### Tables (schema: public)
+
+#### plans
+Stores available subscription plans
+- `id`: TEXT (PK) - Unique plan identifier (e.g., 'free', 'pro')
+- `name`: TEXT - Plan name
+- `description`: TEXT - Plan description
+- `price`: DECIMAL(10,2) - Plan price
+- `workflow_limit`: INTEGER - Workflow limit (NULL = unlimited)
+- `features`: JSONB - List of plan features
+
+#### subscriptions
+Manages user subscriptions
+- `id`: UUID (PK) - Unique subscription identifier
+- `user_id`: UUID (FK) - Reference to `auth.users(id)`
+- `plan_id`: TEXT (FK) - Reference to `plans(id)`
+- `status`: TEXT - Subscription status (default: 'active')
+- `stripe_subscription_id`: TEXT - Stripe subscription ID
+- `stripe_customer_id`: TEXT - Stripe customer ID
+- Period and control fields
+
+#### usage_logs
+Records workflow usage per user
+- `id`: UUID (PK) - Unique record identifier
+- `user_id`: UUID (FK) - Reference to `auth.users(id)`
+- `subscription_id`: UUID (FK) - Reference to `subscriptions(id)`
+- `workflows_used`: INTEGER - Number of workflows used
+- `period_start`: TIMESTAMP - Period start
+- `period_end`: TIMESTAMP - Period end
+
+### Security Policies (RLS)
+
+#### plans
+- SELECT: Allowed for authenticated users
+
+#### subscriptions
+- SELECT: Users can only view their own subscriptions
+- INSERT: Allowed for postgres role (used by trigger)
+
+#### usage_logs
+- SELECT: Users can only view their own logs
+- INSERT: Allowed for postgres role (used by trigger)
+
+### Automation
+
+#### Trigger: on_auth_user_created
+- Executed: AFTER INSERT ON auth.users
+- Function: handle_new_user()
+- Purpose: Automatically initializes a free subscription when a new user is created
+
+#### Function: handle_new_user()
+- Type: TRIGGER FUNCTION
+- Security: SECURITY DEFINER
+- Actions:
+  1. Creates a subscription in the 'free' plan for the new user
+  2. Creates an initial usage_log record for the current period
+- Note: Uses explicit reference to public schema to avoid context errors
+
+### Default Plans
+1. Free
+   - Price: $0
+   - Limit: 5 workflows
+   - Features: ["Basic templates", "Community support"]
+
+2. Pro
+   - Price: $12
+   - Limit: Unlimited
+   - Features: ["Premium templates", "Priority support", "Custom integrations"]
+
+## Development
+
+### Required Commands
+
+After making changes to the database or functions:
+```bash
+supabase functions deploy generate-workflow
+git add .
+git commit -m "feat/fix: clear description of the change"
+git push origin main
+```
