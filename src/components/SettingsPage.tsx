@@ -115,11 +115,11 @@ export const SettingsPage = () => {
             <CardContent className="space-y-4">
               <div className="grid gap-2">
                 <label className="font-medium">Name</label>
-                <p className="text-muted-foreground">Michael Moreira</p>
+                <p className="text-muted-foreground">{user.name}</p>
               </div>
               <div className="grid gap-2">
                 <label className="font-medium">Email</label>
-                <p className="text-muted-foreground">michaelmoreiramelo@gmail.com</p>
+                <p className="text-muted-foreground">{user.email}</p>
               </div>
             </CardContent>
           </Card>
