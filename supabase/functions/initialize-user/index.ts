@@ -12,18 +12,33 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Iniciando inicialização do usuário...')
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          persistSession: false
+        }
+      }
     )
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
       req.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
     )
 
-    if (authError || !user) {
+    if (authError) {
+      console.error('Erro de autenticação:', authError)
       throw new Error('Unauthorized')
     }
+
+    if (!user) {
+      console.error('Usuário não encontrado')
+      throw new Error('User not found')
+    }
+
+    console.log('Usuário autenticado:', user.id)
 
     // Criar assinatura
     const { data: subscription, error: subscriptionError } = await supabaseClient
@@ -35,7 +50,12 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (subscriptionError) throw subscriptionError
+    if (subscriptionError) {
+      console.error('Erro ao criar assinatura:', subscriptionError)
+      throw subscriptionError
+    }
+
+    console.log('Assinatura criada:', subscription.id)
 
     // Criar log de uso
     const { error: usageError } = await supabaseClient
@@ -47,7 +67,12 @@ serve(async (req) => {
         period_end: new Date(new Date(new Date().setMonth(new Date().getMonth() + 1)).setDate(0))
       })
 
-    if (usageError) throw usageError
+    if (usageError) {
+      console.error('Erro ao criar log de uso:', usageError)
+      throw usageError
+    }
+
+    console.log('Log de uso criado com sucesso')
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -57,6 +82,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('Erro durante a inicialização do usuário:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
