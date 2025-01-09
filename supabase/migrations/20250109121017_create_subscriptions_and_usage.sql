@@ -111,9 +111,12 @@ ON subscriptions FOR DELETE
 TO service_role
 USING (true);
 
--- Update function to initialize subscription for new users
-CREATE OR REPLACE FUNCTION handle_new_user() 
-RETURNS TRIGGER 
+-- Drop existing trigger
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Create function to initialize new user
+CREATE OR REPLACE FUNCTION initialize_new_user(user_id UUID) 
+RETURNS VOID
 SECURITY DEFINER
 SET search_path = public, auth
 LANGUAGE plpgsql
@@ -128,19 +131,19 @@ BEGIN
   SET LOCAL ROLE service_role;
   
   -- Log the start of the function
-  RAISE LOG 'Starting handle_new_user for user_id: %', NEW.id;
+  RAISE LOG 'Starting initialize_new_user for user_id: %', user_id;
 
   BEGIN
     -- Log attempt to create subscription
-    RAISE LOG 'Attempting to create subscription for user_id: %', NEW.id;
+    RAISE LOG 'Attempting to create subscription for user_id: %', user_id;
     
     -- Create subscription with RETURNING
     INSERT INTO public.subscriptions (user_id, plan_id)
-    VALUES (NEW.id, 'free')
+    VALUES (user_id, 'free')
     RETURNING id INTO subscription_id;
 
     -- Log successful subscription creation
-    RAISE LOG 'Successfully created subscription with id: % for user_id: %', subscription_id, NEW.id;
+    RAISE LOG 'Successfully created subscription with id: % for user_id: %', subscription_id, user_id;
 
     -- Log attempt to create usage log
     RAISE LOG 'Attempting to create usage log for subscription_id: %', subscription_id;
@@ -148,7 +151,7 @@ BEGIN
     -- Create usage log
     INSERT INTO public.usage_logs (user_id, subscription_id, period_start, period_end)
     VALUES (
-      NEW.id,
+      user_id,
       subscription_id,
       date_trunc('month', now()),
       (date_trunc('month', now()) + interval '1 month' - interval '1 second')
@@ -159,30 +162,40 @@ BEGIN
 
     -- Reset role
     RESET ROLE;
-
-    RETURN NEW;
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT,
                           v_detail = PG_EXCEPTION_DETAIL,
                           v_hint = PG_EXCEPTION_HINT;
     
-    RAISE LOG 'Error in handle_new_user for user_id %: %, Detail: %, Hint: %', 
-              NEW.id, v_error_message, v_detail, v_hint;
+    RAISE LOG 'Error in initialize_new_user for user_id %: %, Detail: %, Hint: %', 
+              user_id, v_error_message, v_detail, v_hint;
               
     -- Reset role even on error
     RESET ROLE;
               
-    -- Re-raise the error to prevent user creation if subscription setup fails
+    -- Re-raise the error
     RAISE EXCEPTION 'Failed to initialize user subscription: %', v_error_message;
   END;
 END;
 $$;
 
--- Drop and recreate trigger
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- Create edge function to handle user creation
+CREATE OR REPLACE FUNCTION handle_new_user_edge() 
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public, auth
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Just return NEW, the actual initialization will be done by the edge function
+  RETURN NEW;
+END;
+$$;
+
+-- Create trigger that just returns NEW
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user_edge();
 
 -- Create function to get subscription info
 CREATE OR REPLACE FUNCTION get_subscription_info(user_id UUID)

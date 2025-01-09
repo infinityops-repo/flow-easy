@@ -30,68 +30,44 @@ const Auth = () => {
     checkAuth();
   }, [navigate]);
 
-  const handleAuth = async (e: FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
-        
-        console.log('Signup response:', { data, error });
-        
-        if (error) {
-          console.error('Signup error:', error);
-          let errorMessage = "An error occurred during registration.";
-          
-          if (error.message.includes("database")) {
-            errorMessage = "Error saving user data. Please try again.";
-          } else if (error.message.includes("password")) {
-            errorMessage = "Password must be at least 6 characters long.";
-          } else if (error.message.includes("email")) {
-            errorMessage = "Please provide a valid email.";
-          } else if (error.message.includes("Failed to initialize")) {
-            errorMessage = "Error initializing user account. Please try again.";
+
+        if (signUpError) throw signUpError;
+
+        if (signUpData.user) {
+          // Initialize user subscription
+          const { error: initError } = await supabase.functions.invoke('initialize-user', {
+            body: {},
+          });
+
+          if (initError) {
+            console.error('Error initializing user:', initError);
+            throw new Error('Erro ao inicializar usuário');
           }
-          
-          throw new Error(errorMessage);
         }
-
-        if (!data.user) {
-          throw new Error("Failed to create user account. Please try again.");
-        }
-
-        toast({
-          title: "Success",
-          description: "Please check your email for the confirmation link.",
-        });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) {
-          console.error('Login error:', error);
-          let errorMessage = "An error occurred during login.";
-          
-          if (error.message.includes("Invalid login credentials")) {
-            errorMessage = "Invalid email or password.";
-          }
-          
-          throw new Error(errorMessage);
-        }
-        navigate('/');
+
+        if (signInError) throw signInError;
       }
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
+
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      setError(error.message || 'Ocorreu um erro durante a autenticação');
     } finally {
       setLoading(false);
     }
