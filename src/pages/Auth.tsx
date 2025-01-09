@@ -50,6 +50,17 @@ const Auth = () => {
         }
 
         if (signUpData.user) {
+          const { error: initError } = await supabase.functions.invoke('initialize-user', {
+            headers: {
+              Authorization: `Bearer ${signUpData.session?.access_token}`
+            }
+          });
+
+          if (initError) {
+            console.error('Error initializing user:', initError);
+            throw initError;
+          }
+
           toast({
             title: "Success",
             description: "Please check your email to confirm your account.",

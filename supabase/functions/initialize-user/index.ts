@@ -25,12 +25,29 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { data, error } = await supabaseClient
-      .rpc('initialize_new_user', {
-        user_id: user.id
+    // Criar assinatura
+    const { data: subscription, error: subscriptionError } = await supabaseClient
+      .from('subscriptions')
+      .insert({
+        user_id: user.id,
+        plan_id: 'free'
+      })
+      .select()
+      .single()
+
+    if (subscriptionError) throw subscriptionError
+
+    // Criar log de uso
+    const { error: usageError } = await supabaseClient
+      .from('usage_logs')
+      .insert({
+        user_id: user.id,
+        subscription_id: subscription.id,
+        period_start: new Date(new Date().setDate(1)),
+        period_end: new Date(new Date(new Date().setMonth(new Date().getMonth() + 1)).setDate(0))
       })
 
-    if (error) throw error
+    if (usageError) throw usageError
 
     return new Response(
       JSON.stringify({ success: true }),
