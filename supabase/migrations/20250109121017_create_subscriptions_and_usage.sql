@@ -1,8 +1,11 @@
--- Enable UUID extension if not already enabled
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Ensure we're in the public schema
+SET search_path TO public;
 
--- Create plans table
-CREATE TABLE plans (
+-- Drop existing trigger first
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Recreate tables if they don't exist
+CREATE TABLE IF NOT EXISTS public.plans (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -13,11 +16,10 @@ CREATE TABLE plans (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Create subscriptions table
-CREATE TABLE subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  plan_id TEXT REFERENCES plans(id) ON DELETE RESTRICT NOT NULL,
+  plan_id TEXT REFERENCES public.plans(id) ON DELETE RESTRICT NOT NULL,
   status TEXT NOT NULL DEFAULT 'active',
   stripe_subscription_id TEXT,
   stripe_customer_id TEXT,
@@ -29,11 +31,10 @@ CREATE TABLE subscriptions (
   UNIQUE(user_id)
 );
 
--- Create usage_logs table
-CREATE TABLE usage_logs (
+CREATE TABLE IF NOT EXISTS public.usage_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE NOT NULL,
+  subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE CASCADE NOT NULL,
   workflows_used INTEGER DEFAULT 0,
   period_start TIMESTAMP WITH TIME ZONE NOT NULL,
   period_end TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -41,27 +42,31 @@ CREATE TABLE usage_logs (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Insert default plans
-INSERT INTO plans (id, name, description, price, workflow_limit, features) VALUES
-('free', 'Free', 'Perfect for getting started', 0, 5, '["Basic templates", "Community support"]'),
-('pro', 'Pro', 'For power users who need more', 12, NULL, '["Premium templates", "Priority support", "Custom integrations"]');
+-- Insert default plans if they don't exist
+INSERT INTO public.plans (id, name, description, price, workflow_limit, features)
+SELECT 'free', 'Free', 'Perfect for getting started', 0, 5, '["Basic templates", "Community support"]'
+WHERE NOT EXISTS (SELECT 1 FROM public.plans WHERE id = 'free');
+
+INSERT INTO public.plans (id, name, description, price, workflow_limit, features)
+SELECT 'pro', 'Pro', 'For power users who need more', 12, NULL, '["Premium templates", "Priority support", "Custom integrations"]'
+WHERE NOT EXISTS (SELECT 1 FROM public.plans WHERE id = 'pro');
 
 -- Enable RLS
-ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.usage_logs ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies and recreate them
-DROP POLICY IF EXISTS "Service role can insert subscriptions" ON subscriptions;
-DROP POLICY IF EXISTS "Service role can select subscriptions" ON subscriptions;
-DROP POLICY IF EXISTS "Service role can update subscriptions" ON subscriptions;
-DROP POLICY IF EXISTS "Service role can delete subscriptions" ON subscriptions;
-DROP POLICY IF EXISTS "Users can view their own subscription" ON subscriptions;
+-- Drop existing policies
+DROP POLICY IF EXISTS "Service role can insert subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Service role can select subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Service role can update subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Service role can delete subscriptions" ON public.subscriptions;
+DROP POLICY IF EXISTS "Users can view their own subscription" ON public.subscriptions;
 
-DROP POLICY IF EXISTS "Service role can insert usage logs" ON usage_logs;
-DROP POLICY IF EXISTS "Service role can select usage logs" ON usage_logs;
-DROP POLICY IF EXISTS "Service role can update usage logs" ON usage_logs;
-DROP POLICY IF EXISTS "Users can view their own usage logs" ON usage_logs;
+DROP POLICY IF EXISTS "Service role can insert usage logs" ON public.usage_logs;
+DROP POLICY IF EXISTS "Service role can select usage logs" ON public.usage_logs;
+DROP POLICY IF EXISTS "Service role can update usage logs" ON public.usage_logs;
+DROP POLICY IF EXISTS "Users can view their own usage logs" ON public.usage_logs;
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO service_role;
@@ -70,52 +75,49 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
 -- Create RLS policies
 CREATE POLICY "Service role can insert subscriptions"
-ON subscriptions FOR INSERT
+ON public.subscriptions FOR INSERT
 TO service_role
 WITH CHECK (true);
 
 CREATE POLICY "Service role can select subscriptions"
-ON subscriptions FOR SELECT
+ON public.subscriptions FOR SELECT
 TO service_role
 USING (true);
 
-CREATE POLICY "Users can view their own subscription" ON subscriptions
+CREATE POLICY "Users can view their own subscription" ON public.subscriptions
   FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Service role can insert usage logs"
-ON usage_logs FOR INSERT
+ON public.usage_logs FOR INSERT
 TO service_role
 WITH CHECK (true);
 
 CREATE POLICY "Service role can select usage logs"
-ON usage_logs FOR SELECT
+ON public.usage_logs FOR SELECT
 TO service_role
 USING (true);
 
-CREATE POLICY "Users can view their own usage logs" ON usage_logs
+CREATE POLICY "Users can view their own usage logs" ON public.usage_logs
   FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Service role can update usage logs"
-ON usage_logs FOR UPDATE
+ON public.usage_logs FOR UPDATE
 TO service_role
 USING (true);
 
 CREATE POLICY "Service role can update subscriptions"
-ON subscriptions FOR UPDATE
+ON public.subscriptions FOR UPDATE
 TO service_role
 USING (true)
 WITH CHECK (true);
 
 CREATE POLICY "Service role can delete subscriptions"
-ON subscriptions FOR DELETE
+ON public.subscriptions FOR DELETE
 TO service_role
 USING (true);
 
--- Drop existing trigger
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-
 -- Create function to initialize new user
-CREATE OR REPLACE FUNCTION initialize_new_user(user_id UUID) 
+CREATE OR REPLACE FUNCTION public.initialize_new_user(user_id UUID) 
 RETURNS VOID
 SECURITY DEFINER
 SET search_path = public, auth
