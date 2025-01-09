@@ -19,8 +19,8 @@ const queryClient = new QueryClient({
   },
 })
 
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+const PrivateRoute = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -64,15 +64,12 @@ const App = () => {
         <Router>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route
-              path="*"
-              element={
-                <PrivateRoute>
-                  <Index />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/settings" element={
+              <PrivateRoute>
+                <SettingsPage />
+              </PrivateRoute>
+            } />
+            <Route path="*" element={<Index />} />
           </Routes>
           <Toaster />
           <Sonner />
