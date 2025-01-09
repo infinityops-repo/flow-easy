@@ -16,10 +16,14 @@ export const SettingsPage = () => {
     email: string | undefined;
     name: string | undefined;
     avatar_url: string | undefined;
+    plan: 'free' | 'pro';
+    workflows_used: number;
   }>({
     email: undefined,
     name: undefined,
-    avatar_url: undefined
+    avatar_url: undefined,
+    plan: 'free',
+    workflows_used: 0
   });
 
   useEffect(() => {
@@ -33,10 +37,16 @@ export const SettingsPage = () => {
         }
 
         if (session?.user) {
+          // TODO: Fetch actual plan and usage from Supabase
+          const plan = 'free';
+          const workflows_used = 2;
+
           setUser({
             email: session.user.email,
             name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-            avatar_url: session.user.user_metadata?.avatar_url
+            avatar_url: session.user.user_metadata?.avatar_url,
+            plan,
+            workflows_used
           });
         }
       } catch (error) {
@@ -57,14 +67,14 @@ export const SettingsPage = () => {
   const handleUpgradeClick = () => {
     toast({
       title: "Coming soon",
-      description: "Business plan upgrade will be available soon.",
+      description: "Pro plan upgrade will be available soon.",
     });
   };
 
-  const handleChangeRequests = () => {
+  const handleManageSubscription = () => {
     toast({
       title: "Coming soon",
-      description: "Changing request limits will be available soon.",
+      description: "Subscription management will be available soon.",
     });
   };
 
@@ -90,6 +100,21 @@ export const SettingsPage = () => {
       </div>
     );
   }
+
+  const planLimits = {
+    free: {
+      workflows: 5,
+      features: ['Basic templates', 'Community support']
+    },
+    pro: {
+      workflows: Infinity,
+      features: ['Premium templates', 'Priority support', 'Custom integrations']
+    }
+  };
+
+  const currentPlan = planLimits[user.plan];
+  const workflowLimit = currentPlan.workflows === Infinity ? 'Unlimited' : currentPlan.workflows;
+  const workflowUsagePercent = currentPlan.workflows === Infinity ? 0 : (user.workflows_used / currentPlan.workflows) * 100;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -128,20 +153,39 @@ export const SettingsPage = () => {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold">Account</h2>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded">Pro</span>
-                  <Button onClick={handleUpgradeClick} variant="outline" size="sm">
-                    UPGRADE TO BUSINESS
-                  </Button>
+                <div>
+                  <h2 className="text-2xl font-semibold">Account</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your current plan: <span className="font-medium capitalize">{user.plan}</span>
+                  </p>
                 </div>
+                {user.plan === 'free' && (
+                  <Button onClick={handleUpgradeClick} variant="default">
+                    Upgrade to Pro
+                  </Button>
+                )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Button onClick={handleChangeRequests} variant="outline">
-                CHANGE # OF FAST REQUESTS
-              </Button>
-              <Button variant="outline">MANAGE SUBSCRIPTION</Button>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-4">Current Plan Features</h3>
+                <ul className="space-y-2">
+                  {currentPlan.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              {user.plan === 'pro' && (
+                <Button onClick={handleManageSubscription} variant="outline" className="w-full">
+                  Manage Subscription
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -154,58 +198,37 @@ export const SettingsPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium">Premium models</h3>
+                    <h3 className="font-medium">Workflows</h3>
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <span>292 / 500</span>
+                  <span>{user.workflows_used} / {workflowLimit}</span>
                 </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: '58.4%' }} />
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  You've used 292 requests out of your 500 monthly fast requests quota.
-                </p>
+                {workflowLimit !== 'Unlimited' && (
+                  <>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary" 
+                        style={{ width: `${Math.min(workflowUsagePercent, 100)}%` }} 
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      You've used {user.workflows_used} workflows out of your {workflowLimit} monthly quota.
+                    </p>
+                  </>
+                )}
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
+              {user.plan === 'pro' && (
+                <div className="p-4 bg-[#1E1E1E] rounded-lg">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium">gpt-4o-mini or cursor-small</h3>
-                    <Info className="h-4 w-4 text-muted-foreground" />
+                    <Info className="h-4 w-4" />
+                    <p className="text-sm">
+                      You have unlimited workflows with your Pro plan.{' '}
+                      <a href="#" className="text-primary hover:underline">View details</a>
+                    </p>
                   </div>
-                  <span>98 / No Limit</span>
                 </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: '98%' }} />
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  You've used 98 fast requests of this model. You have no monthly quota.
-                </p>
-              </div>
-
-              <div className="p-4 bg-[#1E1E1E] rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Info className="h-4 w-4" />
-                  <p className="text-sm">
-                    Usage-based pricing allows you to pay for extra fast requests beyond your plan limits.{' '}
-                    <a href="#" className="text-primary hover:underline">Learn more</a>
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Settings</h3>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span>Enable usage-based pricing</span>
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <Switch
-                    checked={usageBasedPricing}
-                    onCheckedChange={setUsageBasedPricing}
-                  />
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
