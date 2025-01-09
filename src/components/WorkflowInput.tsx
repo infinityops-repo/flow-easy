@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Paperclip, Share2, Download, Copy } from 'lucide-react';
+import { Paperclip, Download, Copy } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { QuickAccess } from './QuickAccess';
@@ -172,9 +172,6 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
                   <SelectItem value="make">Make</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-background/50">
-                <Share2 className="h-4 w-4" />
-              </Button>
             </div>
             <Button 
               className="h-9 px-4" 
