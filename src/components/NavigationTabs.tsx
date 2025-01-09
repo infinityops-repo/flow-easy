@@ -1,11 +1,10 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Folder, Clock, Layout } from 'lucide-react';
+import { Folder, Clock } from 'lucide-react';
 
 const tabs = [
   { icon: Folder, label: "My Projects", id: "my-projects" },
   { icon: Clock, label: "Latest", id: "latest" },
-  { icon: Layout, label: "Templates", id: "templates" },
 ];
 
 interface NavigationTabsProps {

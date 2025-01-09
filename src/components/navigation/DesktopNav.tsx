@@ -15,14 +15,6 @@ export const DesktopNav = ({ onNavigate }: DesktopNavProps) => {
   return (
     <Menubar className="border-none bg-transparent">
       <MenubarMenu>
-        <MenubarTrigger className="font-medium" onClick={onNavigate}>Templates</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem onClick={onNavigate}>New Template</MenubarItem>
-          <MenubarItem onClick={onNavigate}>Browse All</MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-
-      <MenubarMenu>
         <MenubarTrigger className="font-medium" onClick={onNavigate}>News</MenubarTrigger>
         <MenubarContent>
           <MenubarItem onClick={onNavigate}>Latest Updates</MenubarItem>

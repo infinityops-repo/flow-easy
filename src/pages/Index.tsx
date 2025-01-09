@@ -365,8 +365,6 @@ const Index = () => {
         return projects;
       case 'latest':
         return latestProjects;
-      case 'templates':
-        return [];
       default:
         return projects;
     }

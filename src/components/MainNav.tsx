@@ -54,7 +54,6 @@ const MainNav = () => {
                   <div className="px-2 py-4 border-b border-white/10">
                     <p className="font-medium">{userName}</p>
                   </div>
-                  <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Templates</Button>
                   <Button variant="ghost" className="justify-start" onClick={handleNavigation}>News</Button>
                   <Button variant="ghost" className="justify-start" onClick={handleNavigation}>Support</Button>
                   <div className="border-t border-white/10 pt-4 mt-4">
