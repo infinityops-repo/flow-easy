@@ -51,8 +51,8 @@ const Auth = () => {
 
         if (signUpData.user) {
           toast({
-            title: "Sucesso",
-            description: "Por favor, verifique seu email para confirmar sua conta.",
+            title: "Success",
+            description: "Please check your email to confirm your account.",
           });
         }
       } else {
@@ -73,14 +73,14 @@ const Auth = () => {
           navigate('/dashboard');
         } else {
           console.error('No user data after login');
-          throw new Error('Erro ao fazer login. Por favor, tente novamente.');
+          throw new Error('Error logging in. Please try again.');
         }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
       toast({
-        title: "Erro",
-        description: error.message || 'Ocorreu um erro durante a autenticação',
+        title: "Error",
+        description: error.message || 'An error occurred during authentication',
         variant: "destructive",
       });
     } finally {
