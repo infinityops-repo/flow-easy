@@ -51,35 +51,30 @@ SET search_path = public
 AS $$
 DECLARE
   subscription_id UUID;
+  v_error_message TEXT;
 BEGIN
-  -- Set the role to service_role to bypass RLS
-  SET LOCAL ROLE service_role;
+  BEGIN
+    -- Create subscription with RETURNING
+    INSERT INTO subscriptions (user_id, plan_id)
+    VALUES (NEW.id, 'free')
+    RETURNING id INTO subscription_id;
 
-  -- Create subscription with RETURNING
-  INSERT INTO subscriptions (user_id, plan_id)
-  VALUES (NEW.id, 'free')
-  ON CONFLICT (user_id) DO UPDATE 
-    SET updated_at = now()
-  RETURNING id INTO subscription_id;
-  
-  -- Create usage log
-  INSERT INTO usage_logs (user_id, subscription_id, period_start, period_end)
-  VALUES (
-    NEW.id,
-    subscription_id,
-    date_trunc('month', now()),
-    (date_trunc('month', now()) + interval '1 month' - interval '1 second')
-  )
-  ON CONFLICT DO NOTHING;
-  
-  -- Reset role
-  RESET ROLE;
-  
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  -- Log the error
-  RAISE LOG 'Error in handle_new_user: %', SQLERRM;
-  RETURN NEW;
+    -- Create usage log
+    INSERT INTO usage_logs (user_id, subscription_id, period_start, period_end)
+    VALUES (
+      NEW.id,
+      subscription_id,
+      date_trunc('month', now()),
+      (date_trunc('month', now()) + interval '1 month' - interval '1 second')
+    );
+
+    RETURN NEW;
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT;
+    RAISE WARNING 'Error in handle_new_user: %', v_error_message;
+    -- Não vamos retornar NEW aqui para garantir que o erro seja propagado
+    RAISE EXCEPTION 'Failed to initialize user subscription: %', v_error_message;
+  END;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -261,3 +256,15 @@ CREATE POLICY "Service role can delete subscriptions"
 ON subscriptions FOR DELETE
 TO service_role
 USING (true);
+
+-- Create RLS policies for auth.users
+CREATE POLICY "Users can view their own auth data"
+ON auth.users FOR SELECT
+TO authenticated
+USING (auth.uid() = id);
+
+CREATE POLICY "Service role can manage auth data"
+ON auth.users FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);

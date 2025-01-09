@@ -36,10 +36,13 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
+        
+        console.log('Signup response:', { data, error });
+        
         if (error) {
           console.error('Signup error:', error);
           let errorMessage = "An error occurred during registration.";
@@ -50,10 +53,17 @@ const Auth = () => {
             errorMessage = "Password must be at least 6 characters long.";
           } else if (error.message.includes("email")) {
             errorMessage = "Please provide a valid email.";
+          } else if (error.message.includes("Failed to initialize")) {
+            errorMessage = "Error initializing user account. Please try again.";
           }
           
           throw new Error(errorMessage);
         }
+
+        if (!data.user) {
+          throw new Error("Failed to create user account. Please try again.");
+        }
+
         toast({
           title: "Success",
           description: "Please check your email for the confirmation link.",
@@ -116,7 +126,7 @@ const Auth = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="email@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
