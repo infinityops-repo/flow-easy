@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,9 +11,50 @@ import MainNav from "@/components/MainNav";
 export const SettingsPage = () => {
   const { toast } = useToast();
   const [usageBasedPricing, setUsageBasedPricing] = React.useState(false);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<{
+    email: string | undefined;
+    name: string | undefined;
+    avatar_url: string | undefined;
+  }>({
+    email: undefined,
+    name: undefined,
+    avatar_url: undefined
+  });
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          console.log('No active session found');
+          return;
+        }
+
+        if (session?.user) {
+          setUser({
+            email: session.user.email,
+            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+            avatar_url: session.user.user_metadata?.avatar_url
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load user profile",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [toast]);
 
   const handleUpgradeClick = () => {
-    // TODO: Implement upgrade logic
     toast({
       title: "Coming soon",
       description: "Business plan upgrade will be available soon.",
@@ -21,12 +62,34 @@ export const SettingsPage = () => {
   };
 
   const handleChangeRequests = () => {
-    // TODO: Implement change requests logic
     toast({
       title: "Coming soon",
       description: "Changing request limits will be available soon.",
     });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <MainNav />
+        <div className="flex-1 container mx-auto py-8 px-4 mt-16">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-700 rounded w-1/4"></div>
+            <div className="h-4 bg-gray-700 rounded w-2/4"></div>
+            <div className="space-y-8 mt-8">
+              <div className="border rounded-lg p-6 space-y-4">
+                <div className="h-6 bg-gray-700 rounded w-1/4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -45,8 +108,8 @@ export const SettingsPage = () => {
                 <h2 className="text-2xl font-semibold">Basic Information</h2>
               </div>
               <Avatar className="h-12 w-12">
-                <AvatarImage src="https://github.com/shadcn.png" />
-                <AvatarFallback>CN</AvatarFallback>
+                <AvatarImage src={user.avatar_url} />
+                <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </CardHeader>
             <CardContent className="space-y-4">
