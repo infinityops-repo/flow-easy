@@ -8,23 +8,31 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MainNav from "@/components/MainNav";
 
+interface SubscriptionInfo {
+  plan_name: string;
+  plan_workflow_limit: number | null;
+  workflows_used: number;
+  period_start: string;
+  period_end: string;
+  subscription_status: string;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+}
+
 export const SettingsPage = () => {
   const { toast } = useToast();
-  const [usageBasedPricing, setUsageBasedPricing] = React.useState(false);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{
     email: string | undefined;
     name: string | undefined;
     avatar_url: string | undefined;
-    plan: 'free' | 'pro';
-    workflows_used: number;
   }>({
     email: undefined,
     name: undefined,
-    avatar_url: undefined,
-    plan: 'free',
-    workflows_used: 0
+    avatar_url: undefined
   });
+
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -37,17 +45,23 @@ export const SettingsPage = () => {
         }
 
         if (session?.user) {
-          // TODO: Fetch actual plan and usage from Supabase
-          const plan = 'free';
-          const workflows_used = 2;
-
           setUser({
             email: session.user.email,
             name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-            avatar_url: session.user.user_metadata?.avatar_url,
-            plan,
-            workflows_used
+            avatar_url: session.user.user_metadata?.avatar_url
           });
+
+          // Fetch subscription info
+          const { data: subscriptionData, error: subscriptionError } = await supabase
+            .rpc('get_subscription_info', { user_id: session.user.id });
+
+          if (subscriptionError) {
+            throw subscriptionError;
+          }
+
+          if (subscriptionData && subscriptionData.length > 0) {
+            setSubscription(subscriptionData[0]);
+          }
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -64,21 +78,45 @@ export const SettingsPage = () => {
     fetchUserProfile();
   }, [toast]);
 
-  const handleUpgradeClick = () => {
-    toast({
-      title: "Coming soon",
-      description: "Pro plan upgrade will be available soon.",
-    });
+  const handleUpgradeClick = async () => {
+    try {
+      // TODO: Integrate with Stripe
+      toast({
+        title: "Coming soon",
+        description: "Pro plan upgrade will be available soon.",
+      });
+    } catch (error) {
+      console.error('Error upgrading plan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upgrade plan. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleManageSubscription = () => {
-    toast({
-      title: "Coming soon",
-      description: "Subscription management will be available soon.",
-    });
+  const handleManageSubscription = async () => {
+    try {
+      if (!subscription?.stripe_customer_id) {
+        throw new Error('No Stripe customer ID found');
+      }
+
+      // TODO: Redirect to Stripe Customer Portal
+      toast({
+        title: "Coming soon",
+        description: "Subscription management will be available soon.",
+      });
+    } catch (error) {
+      console.error('Error managing subscription:', error);
+      toast({
+        title: "Error",
+        description: "Failed to manage subscription. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  if (loading) {
+  if (loading || !subscription) {
     return (
       <div className="min-h-screen flex flex-col">
         <MainNav />
@@ -103,18 +141,16 @@ export const SettingsPage = () => {
 
   const planLimits = {
     free: {
-      workflows: 5,
       features: ['Basic templates', 'Community support']
     },
     pro: {
-      workflows: Infinity,
       features: ['Premium templates', 'Priority support', 'Custom integrations']
     }
   };
 
-  const currentPlan = planLimits[user.plan];
-  const workflowLimit = currentPlan.workflows === Infinity ? 'Unlimited' : currentPlan.workflows;
-  const workflowUsagePercent = currentPlan.workflows === Infinity ? 0 : (user.workflows_used / currentPlan.workflows) * 100;
+  const currentPlan = planLimits[subscription.plan_name.toLowerCase() as keyof typeof planLimits];
+  const workflowLimit = subscription.plan_workflow_limit === null ? 'Unlimited' : subscription.plan_workflow_limit;
+  const workflowUsagePercent = subscription.plan_workflow_limit === null ? 0 : (subscription.workflows_used / subscription.plan_workflow_limit) * 100;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -156,10 +192,10 @@ export const SettingsPage = () => {
                 <div>
                   <h2 className="text-2xl font-semibold">Account</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Your current plan: <span className="font-medium capitalize">{user.plan}</span>
+                    Your current plan: <span className="font-medium capitalize">{subscription.plan_name}</span>
                   </p>
                 </div>
-                {user.plan === 'free' && (
+                {subscription.plan_name.toLowerCase() === 'free' && (
                   <Button onClick={handleUpgradeClick} variant="default">
                     Upgrade to Pro
                   </Button>
@@ -181,7 +217,7 @@ export const SettingsPage = () => {
                 </ul>
               </div>
               
-              {user.plan === 'pro' && (
+              {subscription.plan_name.toLowerCase() === 'pro' && subscription.stripe_subscription_id && (
                 <Button onClick={handleManageSubscription} variant="outline" className="w-full">
                   Manage Subscription
                 </Button>
@@ -201,7 +237,7 @@ export const SettingsPage = () => {
                     <h3 className="font-medium">Workflows</h3>
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <span>{user.workflows_used} / {workflowLimit}</span>
+                  <span>{subscription.workflows_used} / {workflowLimit}</span>
                 </div>
                 {workflowLimit !== 'Unlimited' && (
                   <>
@@ -212,13 +248,13 @@ export const SettingsPage = () => {
                       />
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">
-                      You've used {user.workflows_used} workflows out of your {workflowLimit} monthly quota.
+                      You've used {subscription.workflows_used} workflows out of your {workflowLimit} monthly quota.
                     </p>
                   </>
                 )}
               </div>
 
-              {user.plan === 'pro' && (
+              {subscription.plan_name.toLowerCase() === 'pro' && (
                 <div className="p-4 bg-[#1E1E1E] rounded-lg">
                   <div className="flex items-center gap-2">
                     <Info className="h-4 w-4" />
