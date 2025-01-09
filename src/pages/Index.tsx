@@ -69,15 +69,21 @@ const Index = () => {
   useEffect(() => {
     const loadLatestProjects = async () => {
       try {
+        console.log('==================== CARREGANDO PROJETOS RECENTES ====================');
         const { data, error } = await supabase
           .from('projects')
           .select('*')
-          .eq('is_private', false)
           .order('created_at', { ascending: false })
           .limit(10);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Erro ao carregar projetos recentes:', error);
+          throw error;
+        }
 
+        console.log('Projetos recentes carregados:', data?.length || 0);
+        console.log('Dados dos projetos:', data);
+        
         setLatestProjects(data || []);
       } catch (error) {
         console.error('Erro ao carregar projetos recentes:', error);
