@@ -42,21 +42,21 @@ const Auth = () => {
         });
         if (error) {
           console.error('Signup error:', error);
-          let errorMessage = "Ocorreu um erro durante o cadastro.";
+          let errorMessage = "An error occurred during registration.";
           
           if (error.message.includes("database")) {
-            errorMessage = "Erro ao salvar os dados do usuário. Por favor, tente novamente.";
+            errorMessage = "Error saving user data. Please try again.";
           } else if (error.message.includes("password")) {
-            errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+            errorMessage = "Password must be at least 6 characters long.";
           } else if (error.message.includes("email")) {
-            errorMessage = "Por favor, forneça um email válido.";
+            errorMessage = "Please provide a valid email.";
           }
           
           throw new Error(errorMessage);
         }
         toast({
-          title: "Sucesso",
-          description: "Verifique seu email para confirmar o cadastro.",
+          title: "Success",
+          description: "Please check your email for the confirmation link.",
         });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -65,10 +65,10 @@ const Auth = () => {
         });
         if (error) {
           console.error('Login error:', error);
-          let errorMessage = "Ocorreu um erro durante o login.";
+          let errorMessage = "An error occurred during login.";
           
           if (error.message.includes("Invalid login credentials")) {
-            errorMessage = "Email ou senha incorretos.";
+            errorMessage = "Invalid email or password.";
           }
           
           throw new Error(errorMessage);
@@ -78,8 +78,8 @@ const Auth = () => {
     } catch (error) {
       console.error('Error:', error);
       toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado",
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -103,10 +103,10 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center text-white">
-            {isSignUp ? 'Criar uma conta' : 'Bem-vindo de volta'}
+            {isSignUp ? 'Create an account' : 'Welcome back'}
           </CardTitle>
           <CardDescription className="text-center text-gray-300">
-            {isSignUp ? 'Digite seu email para criar sua conta' : 'Digite seu email para entrar na sua conta'}
+            {isSignUp ? 'Enter your email to create your account' : 'Enter your email to sign in to your account'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,7 +116,7 @@ const Auth = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@exemplo.com"
+                placeholder="m@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -124,7 +124,7 @@ const Auth = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-white">Senha</Label>
+              <Label htmlFor="password" className="text-white">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -139,7 +139,7 @@ const Auth = () => {
               className="w-full bg-[#9b87f5] hover:bg-[#8b77e5] text-white"
               disabled={loading}
             >
-              {loading ? 'Carregando...' : isSignUp ? 'Criar conta' : 'Entrar'}
+              {loading ? 'Loading...' : isSignUp ? 'Create account' : 'Sign in'}
             </Button>
           </form>
 
@@ -148,7 +148,7 @@ const Auth = () => {
               onClick={() => navigate(isSignUp ? '/auth' : '/auth?mode=signup')}
               className="text-[#9b87f5] hover:text-[#8b77e5] text-sm"
             >
-              {isSignUp ? 'Já tem uma conta? Entre' : 'Não tem uma conta? Crie uma'}
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
             </button>
           </div>
         </CardContent>

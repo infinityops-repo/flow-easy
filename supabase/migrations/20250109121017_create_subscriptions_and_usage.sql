@@ -49,37 +49,53 @@ RETURNS TRIGGER
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  subscription_id UUID;
 BEGIN
   -- Set the role to service_role to bypass RLS
   SET LOCAL ROLE service_role;
 
-  -- Create subscription
+  -- Create subscription with RETURNING
   INSERT INTO subscriptions (user_id, plan_id)
   VALUES (NEW.id, 'free')
-  ON CONFLICT (user_id) DO NOTHING;
+  ON CONFLICT (user_id) DO UPDATE 
+    SET updated_at = now()
+  RETURNING id INTO subscription_id;
   
-  -- Get the subscription id
-  WITH sub AS (
-    SELECT id FROM subscriptions WHERE user_id = NEW.id
-  )
   -- Create usage log
   INSERT INTO usage_logs (user_id, subscription_id, period_start, period_end)
-  SELECT 
+  VALUES (
     NEW.id,
-    sub.id,
+    subscription_id,
     date_trunc('month', now()),
     (date_trunc('month', now()) + interval '1 month' - interval '1 second')
-  FROM sub
+  )
   ON CONFLICT DO NOTHING;
   
   -- Reset role
   RESET ROLE;
   
   RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Log the error
+  RAISE LOG 'Error in handle_new_user: %', SQLERRM;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger to initialize subscription for new users
+-- Add unique constraint to usage_logs if not exists
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'usage_logs_subscription_id_period_start_period_end_key'
+  ) THEN
+    ALTER TABLE usage_logs 
+    ADD CONSTRAINT usage_logs_subscription_id_period_start_period_end_key 
+    UNIQUE (subscription_id, period_start, period_end);
+  END IF;
+END $$;
+
+-- Drop and recreate trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
