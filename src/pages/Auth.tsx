@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface FormEvent extends Event {
+  preventDefault(): void;
+}
+
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +30,7 @@ const Auth = () => {
     checkAuth();
   }, [navigate]);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleAuth = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -36,24 +40,46 @@ const Auth = () => {
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          console.error('Signup error:', error);
+          let errorMessage = "Ocorreu um erro durante o cadastro.";
+          
+          if (error.message.includes("database")) {
+            errorMessage = "Erro ao salvar os dados do usuário. Por favor, tente novamente.";
+          } else if (error.message.includes("password")) {
+            errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+          } else if (error.message.includes("email")) {
+            errorMessage = "Por favor, forneça um email válido.";
+          }
+          
+          throw new Error(errorMessage);
+        }
         toast({
-          title: "Success",
-          description: "Check your email for the confirmation link.",
+          title: "Sucesso",
+          description: "Verifique seu email para confirmar o cadastro.",
         });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          console.error('Login error:', error);
+          let errorMessage = "Ocorreu um erro durante o login.";
+          
+          if (error.message.includes("Invalid login credentials")) {
+            errorMessage = "Email ou senha incorretos.";
+          }
+          
+          throw new Error(errorMessage);
+        }
         navigate('/');
       }
     } catch (error) {
       console.error('Error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado",
         variant: "destructive",
       });
     } finally {
@@ -77,10 +103,10 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center text-white">
-            {isSignUp ? 'Create an account' : 'Welcome back'}
+            {isSignUp ? 'Criar uma conta' : 'Bem-vindo de volta'}
           </CardTitle>
           <CardDescription className="text-center text-gray-300">
-            {isSignUp ? 'Enter your email to create your account' : 'Enter your email to sign in to your account'}
+            {isSignUp ? 'Digite seu email para criar sua conta' : 'Digite seu email para entrar na sua conta'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -90,7 +116,7 @@ const Auth = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="m@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -98,7 +124,7 @@ const Auth = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-white">Password</Label>
+              <Label htmlFor="password" className="text-white">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -113,7 +139,7 @@ const Auth = () => {
               className="w-full bg-[#9b87f5] hover:bg-[#8b77e5] text-white"
               disabled={loading}
             >
-              {loading ? 'Loading...' : isSignUp ? 'Create account' : 'Sign in'}
+              {loading ? 'Carregando...' : isSignUp ? 'Criar conta' : 'Entrar'}
             </Button>
           </form>
 
@@ -122,7 +148,7 @@ const Auth = () => {
               onClick={() => navigate(isSignUp ? '/auth' : '/auth?mode=signup')}
               className="text-[#9b87f5] hover:text-[#8b77e5] text-sm"
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+              {isSignUp ? 'Já tem uma conta? Entre' : 'Não tem uma conta? Crie uma'}
             </button>
           </div>
         </CardContent>
