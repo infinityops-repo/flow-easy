@@ -36,64 +36,34 @@ const Auth = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       if (isSignUp) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        const { data: { user }, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
 
-        if (signUpError) {
-          console.error('Signup error:', signUpError);
-          throw signUpError;
-        }
+        if (signUpError) throw signUpError;
 
-        if (signUpData.user) {
-          const { error: initError } = await supabase.functions.invoke('initialize-user', {
-            headers: {
-              Authorization: `Bearer ${signUpData.session?.access_token}`
-            }
-          });
+        const { error: initError } = await supabase.functions.invoke('initialize-user');
+        if (initError) throw initError;
 
-          if (initError) {
-            console.error('Error initializing user:', initError);
-            throw initError;
-          }
-
-          toast({
-            title: "Success",
-            description: "Please check your email to confirm your account.",
-          });
-        }
+        toast.success('Conta criada com sucesso! Verifique seu email para confirmar.');
       } else {
-        console.log('Attempting login...');
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (signInError) {
-          console.error('Login error:', signInError);
-          throw signInError;
-        }
-
-        console.log('Login successful:', data);
-        if (data?.user) {
-          console.log('Redirecting to dashboard...');
-          navigate('/dashboard');
-        } else {
-          console.error('No user data after login');
-          throw new Error('Error logging in. Please try again.');
-        }
+        if (signInError) throw signInError;
       }
-    } catch (error: any) {
+
+      navigate('/dashboard');
+    } catch (error) {
       console.error('Auth error:', error);
-      toast({
-        title: "Error",
-        description: error.message || 'An error occurred during authentication',
-        variant: "destructive",
-      });
+      setError('Ocorreu um erro durante o ' + (isSignUp ? 'cadastro' : 'login'));
     } finally {
       setLoading(false);
     }
