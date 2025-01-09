@@ -79,7 +79,42 @@ RETURNS TABLE (
   stripe_subscription_id TEXT,
   stripe_customer_id TEXT
 ) AS $$
+DECLARE
+  current_subscription_id UUID;
 BEGIN
+  -- Get or create subscription
+  SELECT id INTO current_subscription_id
+  FROM subscriptions 
+  WHERE user_id = get_subscription_info.user_id;
+
+  -- If no subscription exists, create one with free plan
+  IF current_subscription_id IS NULL THEN
+    INSERT INTO subscriptions (user_id, plan_id)
+    VALUES (get_subscription_info.user_id, 'free')
+    RETURNING id INTO current_subscription_id;
+  END IF;
+
+  -- Get or create usage log for current period
+  INSERT INTO usage_logs (
+    user_id,
+    subscription_id,
+    workflows_used,
+    period_start,
+    period_end
+  )
+  SELECT
+    get_subscription_info.user_id,
+    current_subscription_id,
+    0,
+    date_trunc('month', now()),
+    (date_trunc('month', now()) + interval '1 month' - interval '1 second')
+  WHERE NOT EXISTS (
+    SELECT 1 FROM usage_logs ul
+    WHERE ul.subscription_id = current_subscription_id
+    AND ul.period_end > now()
+  );
+
+  -- Return subscription info
   RETURN QUERY
   SELECT
     p.name as plan_name,
@@ -93,7 +128,7 @@ BEGIN
   FROM subscriptions s
   JOIN plans p ON s.plan_id = p.id
   LEFT JOIN usage_logs ul ON s.id = ul.subscription_id
-  WHERE s.user_id = user_id
+  WHERE s.user_id = get_subscription_info.user_id
   AND ul.period_end > now()
   LIMIT 1;
 END;
