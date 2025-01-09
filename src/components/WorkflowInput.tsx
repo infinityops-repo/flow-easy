@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Paperclip, Download, Copy } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Paperclip, Download, Copy, AlertTriangle } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { QuickAccess } from './QuickAccess';
+import { useNavigate } from 'react-router-dom';
 
 interface WorkflowInputProps {
   onWorkflowGenerated?: (workflow: any, prompt: string, platform: string) => void;
@@ -19,7 +20,9 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
   const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
   const [shareableUrl, setShareableUrl] = useState<string | null>(null);
   const [showWorkflow, setShowWorkflow] = useState(false);
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleGenerateWorkflow = async () => {
     if (!prompt.trim()) {
@@ -33,18 +36,34 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
 
     setIsLoading(true);
     try {
-      console.log('==================== INICIANDO GERAÇÃO DO WORKFLOW ====================');
+      console.log('==================== STARTING WORKFLOW GENERATION ====================');
       console.log('Prompt:', prompt);
-      console.log('Plataforma:', platform);
+      console.log('Platform:', platform);
 
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Sessão:', session?.user?.id);
+      console.log('Session:', session?.user?.id);
       
       if (!session?.access_token) {
         throw new Error('User not authenticated');
       }
 
-      console.log('==================== CHAMANDO FUNÇÃO GENERATE-WORKFLOW ====================');
+      // Check workflow usage limit
+      const { data: canGenerate, error: usageError } = await supabase
+        .rpc('increment_workflow_usage', {
+          user_id: session.user.id
+        });
+
+      if (usageError) {
+        console.error('Error checking workflow usage:', usageError);
+        throw new Error('Error checking workflow usage. Please try again.');
+      }
+
+      if (!canGenerate) {
+        setShowLimitDialog(true);
+        return;
+      }
+
+      console.log('==================== CALLING GENERATE-WORKFLOW FUNCTION ====================');
       const { data, error } = await supabase.functions.invoke('generate-workflow', {
         body: { prompt, platform },
         headers: {
@@ -53,7 +72,7 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       });
 
       if (error) {
-        console.error('Erro na função generate-workflow:', error);
+        console.error('Error in generate-workflow function:', error);
         throw error;
       }
 
@@ -62,21 +81,21 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
         throw new Error('Invalid server response');
       }
 
-      console.log('==================== WORKFLOW GERADO COM SUCESSO ====================');
+      console.log('==================== WORKFLOW GENERATED SUCCESSFULLY ====================');
       console.log('Workflow:', JSON.stringify(data.workflow, null, 2));
-      console.log('Tipo do workflow:', typeof data.workflow);
-      console.log('É objeto?', data.workflow !== null && typeof data.workflow === 'object');
-      console.log('Chaves:', Object.keys(data.workflow));
+      console.log('Workflow type:', typeof data.workflow);
+      console.log('Is object?', data.workflow !== null && typeof data.workflow === 'object');
+      console.log('Keys:', Object.keys(data.workflow));
 
-      // Armazena o workflow como está para a interface
+      // Store workflow as is for the interface
       setGeneratedWorkflow(data.workflow);
       setShareableUrl(data.shareableUrl);
       setShowWorkflow(true);
       
-      // Notifica o componente pai sobre o novo workflow
+      // Notify parent component about new workflow
       if (onWorkflowGenerated) {
-        console.log('==================== CHAMANDO CALLBACK onWorkflowGenerated ====================');
-        console.log('Parâmetros:', {
+        console.log('==================== CALLING onWorkflowGenerated CALLBACK ====================');
+        console.log('Parameters:', {
           workflow: data.workflow,
           prompt,
           platform
@@ -84,10 +103,10 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
         
         try {
           await onWorkflowGenerated(data.workflow, prompt, platform);
-          console.log('==================== CALLBACK EXECUTADO COM SUCESSO ====================');
+          console.log('==================== CALLBACK EXECUTED SUCCESSFULLY ====================');
         } catch (callbackError) {
-          console.error('==================== ERRO NO CALLBACK ====================');
-          console.error('Erro:', callbackError);
+          console.error('==================== ERROR IN CALLBACK ====================');
+          console.error('Error:', callbackError);
           throw callbackError;
         }
       }
@@ -98,8 +117,8 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       });
 
     } catch (error) {
-      console.error('==================== ERRO NA GERAÇÃO DO WORKFLOW ====================');
-      console.error('Erro completo:', error);
+      console.error('==================== ERROR IN WORKFLOW GENERATION ====================');
+      console.error('Complete error:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       
       toast({
@@ -165,7 +184,7 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
               </Button>
               <Select value={platform} onValueChange={setPlatform}>
                 <SelectTrigger className="w-[120px] bg-background/80 border-0 h-9">
-                  <SelectValue placeholder="Selecione a plataforma" />
+                  <SelectValue placeholder="Select platform" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="n8n">n8n</SelectItem>
@@ -191,7 +210,7 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
       <Dialog open={showWorkflow} onOpenChange={setShowWorkflow}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Workflow {platform === 'make' ? 'Make' : 'n8n'} Gerado</DialogTitle>
+            <DialogTitle>{platform === 'make' ? 'Make' : 'n8n'} Workflow Generated</DialogTitle>
             <DialogDescription>
               {getPlatformInstructions()}
             </DialogDescription>
@@ -200,11 +219,11 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
             <div className="flex justify-end space-x-2">
               <Button variant="outline" size="sm" onClick={handleCopyJson}>
                 <Copy className="h-4 w-4 mr-2" />
-                Copiar JSON
+                Copy JSON
               </Button>
               <Button variant="outline" size="sm" onClick={handleDownloadJson}>
                 <Download className="h-4 w-4 mr-2" />
-                Baixar JSON
+                Download JSON
               </Button>
             </div>
             <div className="prose prose-sm max-w-none">
@@ -214,7 +233,7 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
             </div>
             {shareableUrl && (
               <div className="mt-4">
-                <p className="text-sm font-medium mb-2">Link Compartilhável:</p>
+                <p className="text-sm font-medium mb-2">Shareable Link:</p>
                 <Input 
                   value={shareableUrl} 
                   readOnly 
@@ -225,6 +244,28 @@ export const WorkflowInput = ({ onWorkflowGenerated }: WorkflowInputProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showLimitDialog} onOpenChange={setShowLimitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Usage Limit Reached
+            </DialogTitle>
+            <DialogDescription>
+              You have reached your workflow generation limit for this period. Upgrade your plan to continue creating workflows and unlock additional features.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLimitDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => navigate('/settings')}>
+              View Plans
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
+}
