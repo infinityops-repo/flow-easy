@@ -1,4 +1,4 @@
--- Enable UUID extension if not already enabled
+-- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create plans table if not exists
@@ -6,9 +6,9 @@ CREATE TABLE IF NOT EXISTS plans (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
-  price DECIMAL(10,2) NOT NULL,
+  price DECIMAL(10,2) NOT NULL DEFAULT 0,
   workflow_limit INTEGER,
-  features JSONB NOT NULL DEFAULT '[]',
+  features JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -78,11 +78,15 @@ CREATE POLICY "Trigger can insert usage logs" ON usage_logs
 CREATE OR REPLACE FUNCTION handle_new_user() 
 RETURNS TRIGGER 
 SECURITY DEFINER
+SET search_path = public, auth
 LANGUAGE plpgsql
 AS $$
 DECLARE
   subscription_id UUID;
 BEGIN
+  -- Set role to service_role to bypass RLS
+  SET LOCAL ROLE service_role;
+
   -- Create subscription with explicit schema
   INSERT INTO public.subscriptions (user_id, plan_id)
   VALUES (NEW.id, 'free')
@@ -96,6 +100,9 @@ BEGIN
     date_trunc('month', now()),
     (date_trunc('month', now()) + interval '1 month' - interval '1 second')
   );
+
+  -- Reset role
+  RESET ROLE;
 
   RETURN NEW;
 END;
