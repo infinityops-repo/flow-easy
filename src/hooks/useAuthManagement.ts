@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export const useAuthManagement = () => {
   const [userName, setUserName] = useState<string>("User");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        
+        setIsAuthenticated(!!session);
         
         if (!session) {
           console.log('No active session found');
@@ -69,6 +73,7 @@ export const useAuthManagement = () => {
           variant: "destructive",
         });
       } else {
+        setIsAuthenticated(false);
         toast({
           title: "Success",
           description: "Successfully logged out",
@@ -84,6 +89,7 @@ export const useAuthManagement = () => {
 
   return {
     userName,
+    isAuthenticated,
     handleSignOut
   };
 };
