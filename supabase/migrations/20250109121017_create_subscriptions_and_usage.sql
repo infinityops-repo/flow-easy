@@ -65,6 +65,15 @@ CREATE POLICY "Users can view their own subscription" ON subscriptions
 CREATE POLICY "Users can view their own usage logs" ON usage_logs
   FOR SELECT USING (auth.uid() = user_id);
 
+-- Add policies for trigger function
+CREATE POLICY "Trigger can insert subscriptions" ON subscriptions
+  FOR INSERT TO postgres
+  WITH CHECK (true);
+
+CREATE POLICY "Trigger can insert usage logs" ON usage_logs
+  FOR INSERT TO postgres
+  WITH CHECK (true);
+
 -- Create function to initialize subscription for new users
 CREATE OR REPLACE FUNCTION handle_new_user() 
 RETURNS TRIGGER 
@@ -74,13 +83,13 @@ AS $$
 DECLARE
   subscription_id UUID;
 BEGIN
-  -- Create subscription
-  INSERT INTO subscriptions (user_id, plan_id)
+  -- Create subscription with explicit schema
+  INSERT INTO public.subscriptions (user_id, plan_id)
   VALUES (NEW.id, 'free')
   RETURNING id INTO subscription_id;
 
-  -- Create usage log
-  INSERT INTO usage_logs (user_id, subscription_id, period_start, period_end)
+  -- Create usage log with explicit schema
+  INSERT INTO public.usage_logs (user_id, subscription_id, period_start, period_end)
   VALUES (
     NEW.id,
     subscription_id,
