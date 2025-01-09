@@ -74,15 +74,9 @@ Sempre que fizer alterações no código, siga esta sequência:
 
 1. Fazer as alterações no código
 2. Testar localmente
-3. Fazer deploy no Supabase:
+3. Deploy no Supabase e GitHub (execute os comandos juntos):
    ```bash
-   supabase functions deploy generate-workflow
-   ```
-4. Commitar e pushar para o GitHub:
-   ```bash
-   git add .
-   git commit -m "feat/fix: descrição clara da alteração"
-   git push origin main
+   supabase functions deploy generate-workflow && git add . && git commit -m "feat/fix: descrição clara da alteração" && git push origin main
    ```
 
 ⚠️ IMPORTANTE: Nunca pule nenhum desses passos! A ordem é essencial para manter a consistência entre ambientes.
