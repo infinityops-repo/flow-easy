@@ -1,3 +1,6 @@
+-- Enable UUID extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Create plans table
 CREATE TABLE plans (
   id TEXT PRIMARY KEY,
@@ -43,7 +46,72 @@ INSERT INTO plans (id, name, description, price, workflow_limit, features) VALUE
 ('free', 'Free', 'Perfect for getting started', 0, 5, '["Basic templates", "Community support"]'),
 ('pro', 'Pro', 'For power users who need more', 12, NULL, '["Premium templates", "Priority support", "Custom integrations"]');
 
--- Create function to initialize subscription for new users
+-- Enable RLS
+ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies and recreate them
+DROP POLICY IF EXISTS "Service role can insert subscriptions" ON subscriptions;
+DROP POLICY IF EXISTS "Service role can select subscriptions" ON subscriptions;
+DROP POLICY IF EXISTS "Service role can update subscriptions" ON subscriptions;
+DROP POLICY IF EXISTS "Service role can delete subscriptions" ON subscriptions;
+DROP POLICY IF EXISTS "Users can view their own subscription" ON subscriptions;
+
+DROP POLICY IF EXISTS "Service role can insert usage logs" ON usage_logs;
+DROP POLICY IF EXISTS "Service role can select usage logs" ON usage_logs;
+DROP POLICY IF EXISTS "Service role can update usage logs" ON usage_logs;
+DROP POLICY IF EXISTS "Users can view their own usage logs" ON usage_logs;
+
+-- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+
+-- Create RLS policies
+CREATE POLICY "Service role can insert subscriptions"
+ON subscriptions FOR INSERT
+TO service_role
+WITH CHECK (true);
+
+CREATE POLICY "Service role can select subscriptions"
+ON subscriptions FOR SELECT
+TO service_role
+USING (true);
+
+CREATE POLICY "Users can view their own subscription" ON subscriptions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role can insert usage logs"
+ON usage_logs FOR INSERT
+TO service_role
+WITH CHECK (true);
+
+CREATE POLICY "Service role can select usage logs"
+ON usage_logs FOR SELECT
+TO service_role
+USING (true);
+
+CREATE POLICY "Users can view their own usage logs" ON usage_logs
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role can update usage logs"
+ON usage_logs FOR UPDATE
+TO service_role
+USING (true);
+
+CREATE POLICY "Service role can update subscriptions"
+ON subscriptions FOR UPDATE
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Service role can delete subscriptions"
+ON subscriptions FOR DELETE
+TO service_role
+USING (true);
+
+-- Update function to initialize subscription for new users
 CREATE OR REPLACE FUNCTION handle_new_user() 
 RETURNS TRIGGER 
 SECURITY DEFINER
@@ -110,18 +178,13 @@ BEGIN
 END;
 $$;
 
--- Grant necessary permissions
-GRANT USAGE ON SCHEMA public TO service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
-
 -- Drop and recreate trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
--- Create function to get current user's subscription info
+-- Create function to get subscription info
 CREATE OR REPLACE FUNCTION get_subscription_info(user_id UUID)
 RETURNS TABLE (
   plan_name TEXT,
@@ -188,54 +251,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create RLS policies
-ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
-
--- Plans are readable by all authenticated users
-CREATE POLICY "Plans are viewable by all users" ON plans
-  FOR SELECT USING (auth.role() = 'authenticated');
-
--- Allow service role to insert into subscriptions
-CREATE POLICY "Service role can insert subscriptions"
-ON subscriptions FOR INSERT
-TO service_role
-WITH CHECK (true);
-
--- Allow service role to select from subscriptions
-CREATE POLICY "Service role can select subscriptions"
-ON subscriptions FOR SELECT
-TO service_role
-USING (true);
-
--- Users can view their own subscription
-CREATE POLICY "Users can view their own subscription" ON subscriptions
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Allow service role to insert into usage_logs
-CREATE POLICY "Service role can insert usage logs"
-ON usage_logs FOR INSERT
-TO service_role
-WITH CHECK (true);
-
--- Allow service role to select from usage_logs
-CREATE POLICY "Service role can select usage logs"
-ON usage_logs FOR SELECT
-TO service_role
-USING (true);
-
--- Users can view their own usage logs
-CREATE POLICY "Users can view their own usage logs" ON usage_logs
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Allow service role to update usage_logs
-CREATE POLICY "Service role can update usage logs"
-ON usage_logs FOR UPDATE
-TO service_role
-USING (true);
-
--- Function to increment workflow usage
+-- Create function to increment workflow usage
 CREATE OR REPLACE FUNCTION increment_workflow_usage(user_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -268,32 +284,3 @@ BEGIN
   RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Allow service role to update subscriptions
-CREATE POLICY "Service role can update subscriptions"
-ON subscriptions FOR UPDATE
-TO service_role
-USING (true)
-WITH CHECK (true);
-
--- Allow service role to delete subscriptions
-CREATE POLICY "Service role can delete subscriptions"
-ON subscriptions FOR DELETE
-TO service_role
-USING (true);
-
--- Allow trigger function to access all tables
-ALTER TABLE subscriptions SECURITY DEFINER;
-ALTER TABLE usage_logs SECURITY DEFINER;
-
--- Create RLS policies for auth.users
-CREATE POLICY "Users can view their own auth data"
-ON auth.users FOR SELECT
-TO authenticated
-USING (auth.uid() = id);
-
-CREATE POLICY "Service role can manage auth data"
-ON auth.users FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
