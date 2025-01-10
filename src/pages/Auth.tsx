@@ -23,6 +23,18 @@ const Auth = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
+      const hash = window.location.hash;
+      if (hash.includes('error=access_denied') && hash.includes('error_code=otp_expired')) {
+        toast({
+          title: "Link expirado",
+          description: "O link de confirmação expirou. Por favor, faça login para receber um novo link.",
+          variant: "destructive",
+          duration: 6000
+        });
+        window.location.hash = '';
+        return;
+      }
+
       console.log('Checking auth session...');
       const { data: { session } } = await supabase.auth.getSession();
       console.log('Current session:', session);
@@ -32,7 +44,45 @@ const Auth = () => {
       }
     };
     checkAuth();
-  }, [navigate]);
+  }, [navigate, toast]);
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      toast({
+        title: "Email necessário",
+        description: "Por favor, insira seu email para receber um novo link de confirmação.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + '/auth'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email reenviado",
+        description: "Um novo link de confirmação foi enviado para seu email.",
+        duration: 5000
+      });
+    } catch (err) {
+      console.error('Erro ao reenviar email:', err);
+      toast({
+        title: "Erro",
+        description: "Não foi possível reenviar o email de confirmação. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    }
+    setLoading(false);
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +208,22 @@ const Auth = () => {
                 className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
               />
             </div>
+            
+            {error && (
+              <div className="text-red-500 text-sm text-center">
+                {error}
+                {error.includes('Email not confirmed') && (
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    className="ml-2 text-[#9b87f5] hover:text-[#8b77e5]"
+                  >
+                    Reenviar email de confirmação
+                  </button>
+                )}
+              </div>
+            )}
+
             <Button 
               type="submit" 
               className="w-full bg-[#9b87f5] hover:bg-[#8b77e5] text-white"
