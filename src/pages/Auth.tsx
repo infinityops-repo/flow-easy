@@ -51,6 +51,9 @@ const Auth = () => {
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: window.location.origin + '/auth'
+          }
         });
 
         if (signUpError) {
@@ -64,18 +67,16 @@ const Auth = () => {
 
         console.log('Usuário criado com sucesso');
 
-        console.log('Inicializando usuário...');
-        const { error: initError } = await supabase.functions.invoke('initialize-user', {
-          body: { user_id: authData.user.id }
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Por favor, verifique seu email para confirmar sua conta. Você receberá um link de confirmação em alguns minutos.",
+          duration: 10000 // 10 segundos para dar tempo de ler
         });
 
-        if (initError) {
-          console.error('Erro ao inicializar usuário:', initError);
-          throw new Error('Erro ao inicializar usuário: ' + initError.message);
-        }
+        setEmail('');
+        setPassword('');
+        return;
 
-        console.log('Usuário inicializado com sucesso');
-        
       } else {
         console.log('Fazendo login...');
         const { error: signInError } = await supabase.auth.signInWithPassword({
