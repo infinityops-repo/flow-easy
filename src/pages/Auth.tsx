@@ -65,7 +65,9 @@ const Auth = () => {
         console.log('Usuário criado com sucesso');
 
         console.log('Inicializando usuário...');
-        const { error: initError } = await supabase.functions.invoke('initialize-user');
+        const { error: initError } = await supabase.functions.invoke('initialize-user', {
+          body: { user_id: authData.user.id }
+        });
 
         if (initError) {
           console.error('Erro ao inicializar usuário:', initError);
