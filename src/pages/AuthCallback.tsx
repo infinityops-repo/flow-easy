@@ -49,7 +49,7 @@ const AuthCallback = () => {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1YWVhb2NyZG9heHd1eWJqa2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyMDIwOTksImV4cCI6MjA1MTc3ODA5OX0.ZIlKfuMb9fujzwCVnESsmaso1IE3BxQt5zVPnXBVp6w',
           },
-          redirect: 'manual' // Não seguir redirecionamentos automaticamente
+          redirect: 'follow' // Seguir redirecionamentos automaticamente
         });
 
         console.log('Resposta da verificação:', {
@@ -59,35 +59,20 @@ const AuthCallback = () => {
           url: response.url
         });
 
-        // Se for redirecionamento (303), verificar o conteúdo antes de prosseguir
-        if (response.status === 303) {
-          // Tentar ler o corpo da resposta
+        // Se a resposta não for ok, tentar ler o corpo para verificar o erro
+        if (!response.ok) {
           const text = await response.text().catch(() => '');
           console.log('Conteúdo da resposta:', text);
 
-          // Se contiver mensagem de erro, tratar como erro
           if (text.includes('One-time token not found') || text.includes('invalid or has expired')) {
             throw new Error('Este link já foi utilizado. Por favor, faça login normalmente.');
           }
 
-          // Se não houver erro, seguir o redirecionamento
-          const redirectUrl = response.headers.get('location');
-          if (redirectUrl) {
-            console.log('Redirecionando para:', redirectUrl);
-            window.location.href = redirectUrl;
-            return;
-          }
-        }
-
-        // Se não for redirecionamento e não for ok, é erro
-        if (!response.ok) {
-          const responseData = await response.json().catch(() => ({}));
-          console.error('Erro na verificação:', responseData);
-          throw new Error(responseData.error_description || 'Erro ao verificar email');
+          throw new Error('Erro ao verificar email');
         }
 
         // Aguardar um momento para a sessão ser estabelecida
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Verificar a sessão novamente
         const { data: { session: finalSession }, error: finalSessionError } = await supabase.auth.getSession();
