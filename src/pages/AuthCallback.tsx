@@ -63,16 +63,18 @@ const AuthCallback = () => {
         if (!session) {
           console.log('Nenhuma sessão encontrada, verificando token na URL');
           
-          // Extrair token_hash da URL
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const tokenHash = hashParams.get('access_token') || searchParams.get('token_hash');
+          // Extrair token da URL
+          const token = searchParams.get('token');
+          const type = searchParams.get('type');
           
-          if (tokenHash) {
-            console.log('Token hash encontrado na URL:', tokenHash);
+          console.log('Parâmetros encontrados:', { token, type });
+          
+          if (token) {
+            console.log('Token encontrado na URL, tentando verificar');
             try {
               const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                token_hash: tokenHash,
-                type: 'signup'
+                token_hash: token,
+                type: type as any || 'signup'
               });
 
               if (verifyError) {
@@ -98,10 +100,41 @@ const AuthCallback = () => {
               throw verifyError;
             }
           } else {
-            console.log('Nenhum token hash encontrado na URL');
-            setError('Link de verificação inválido');
-            setTimeout(() => navigate('/auth'), 3000);
-            return;
+            // Se não encontrou o token na query, tenta no hash
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const tokenHash = hashParams.get('access_token');
+            
+            if (tokenHash) {
+              console.log('Token hash encontrado no hash da URL:', tokenHash);
+              try {
+                const { data, error: verifyError } = await supabase.auth.verifyOtp({
+                  token_hash: tokenHash,
+                  type: 'signup'
+                });
+
+                if (verifyError) {
+                  console.error('Erro ao verificar token hash:', verifyError);
+                  throw verifyError;
+                }
+
+                if (data?.user) {
+                  console.log('Verificação por hash bem-sucedida:', {
+                    userId: data.user.id,
+                    email: data.user.email
+                  });
+                  navigate('/dashboard');
+                  return;
+                }
+              } catch (verifyError) {
+                console.error('Erro na verificação por hash:', verifyError);
+                throw verifyError;
+              }
+            } else {
+              console.log('Nenhum token encontrado na URL (nem query nem hash)');
+              setError('Link de verificação inválido ou expirado');
+              setTimeout(() => navigate('/auth'), 3000);
+              return;
+            }
           }
         }
 
