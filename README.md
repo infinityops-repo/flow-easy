@@ -198,3 +198,110 @@ git add .
 git commit -m "feat/fix: descrição clara da alteração"
 git push origin main
 ```
+
+# Flow Easy
+
+Aplicação para criação e execução de workflows.
+
+## Desenvolvimento
+
+1. Clone o repositório
+2. Instale as dependências:
+```bash
+npm install
+```
+3. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env
+```
+4. Inicie o servidor de desenvolvimento:
+```bash
+npm run dev
+```
+
+## Deploy
+
+### Banco de dados
+
+Para aplicar alterações no banco de dados:
+
+1. Crie uma nova migração:
+```bash
+supabase migration new nome_da_migracao
+```
+
+2. Edite o arquivo criado em `supabase/migrations`
+
+3. Aplique a migração:
+```bash
+supabase db reset
+```
+
+4. Faça deploy das alterações:
+```bash
+supabase db push
+```
+
+### Edge Functions
+
+Para fazer deploy de funções edge:
+
+```bash
+supabase functions deploy nome-da-funcao
+```
+
+### Frontend
+
+1. Faça build da aplicação:
+```bash
+npm run build
+```
+
+2. Faça deploy para produção:
+```bash
+npm run deploy
+```
+
+### Git
+
+Para enviar alterações:
+
+```bash
+git add .
+git commit -m "feat/fix: descrição clara da alteração"
+git push origin main
+```
+
+## Estrutura do Banco de Dados
+
+### Tabelas
+
+#### plans
+- id (text, PK)
+- name (text)
+- description (text)
+- max_workflows (integer)
+- created_at (timestamptz)
+
+#### subscriptions
+- id (uuid, PK)
+- user_id (uuid, FK -> auth.users)
+- plan_id (text, FK -> plans)
+- created_at (timestamptz)
+- updated_at (timestamptz)
+
+#### usage_logs
+- id (uuid, PK)
+- user_id (uuid, FK -> auth.users)
+- subscription_id (uuid, FK -> subscriptions)
+- workflows_used (integer)
+- period_start (timestamptz)
+- period_end (timestamptz)
+- created_at (timestamptz)
+- updated_at (timestamptz)
+
+### Políticas de Segurança
+
+- Usuários autenticados podem ver apenas seus próprios dados
+- Service role tem acesso total às tabelas
+- Triggers são executados com SECURITY DEFINER

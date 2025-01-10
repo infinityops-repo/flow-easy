@@ -19,6 +19,7 @@ const Auth = () => {
   const isSignUp = searchParams.get('mode') === 'signup';
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -39,34 +40,72 @@ const Auth = () => {
     setError(null);
 
     try {
+      console.log('Iniciando processo de autenticação...');
+      
       if (isSignUp) {
-        const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        if (password.length < 6) {
+          throw new Error('A senha deve ter pelo menos 6 caracteres');
+        }
+
+        console.log('Criando novo usuário...');
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
 
-        if (signUpError) throw signUpError;
+        if (signUpError) {
+          console.error('Erro no signup:', signUpError);
+          throw signUpError;
+        }
 
+        if (!authData.user) {
+          throw new Error('Erro ao criar usuário');
+        }
+
+        console.log('Usuário criado com sucesso');
+
+        console.log('Inicializando usuário...');
         const { error: initError } = await supabase.functions.invoke('initialize-user');
-        if (initError) throw initError;
 
-        toast.success('Conta criada com sucesso! Verifique seu email para confirmar.');
+        if (initError) {
+          console.error('Erro ao inicializar usuário:', initError);
+          throw new Error('Erro ao inicializar usuário: ' + initError.message);
+        }
+
+        console.log('Usuário inicializado com sucesso');
+        
       } else {
+        console.log('Fazendo login...');
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (signInError) throw signInError;
+        if (signInError) {
+          console.error('Erro no login:', signInError);
+          throw signInError;
+        }
+
+        console.log('Login realizado com sucesso');
       }
 
       navigate('/dashboard');
-    } catch (error) {
-      console.error('Auth error:', error);
-      setError('Ocorreu um erro durante o ' + (isSignUp ? 'cadastro' : 'login'));
-    } finally {
-      setLoading(false);
+
+    } catch (err) {
+      console.error('Erro detalhado:', err);
+      
+      if (err.message.includes('Email not confirmed')) {
+        setError('Por favor confirme seu email antes de fazer login');
+      } else if (err.message.includes('Invalid login credentials')) {
+        setError('Email ou senha incorretos');
+      } else if (err.message.includes('User already registered')) {
+        setError('Este email já está cadastrado');
+      } else {
+        setError(err.message || 'Ocorreu um erro durante a autenticação');
+      }
     }
+
+    setLoading(false);
   };
 
   return (
