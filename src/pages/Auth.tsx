@@ -119,6 +119,31 @@ const Auth = () => {
             message: signUpError.message,
             details: signUpError.details
           });
+
+          if (signUpError.message.includes('User already registered')) {
+            const { error: signInError } = await supabase.auth.signInWithOtp({
+              email,
+              options: {
+                emailRedirectTo: 'https://floweasy.run/auth/callback'
+              }
+            });
+
+            if (signInError) {
+              console.error('Erro ao enviar email de verificação:', signInError);
+              throw new Error('Não foi possível enviar o email de verificação. Por favor, tente novamente mais tarde.');
+            }
+
+            toast({
+              title: "Email já cadastrado",
+              description: "Enviamos um novo link de verificação para seu email. Por favor, verifique sua caixa de entrada e spam.",
+              duration: 8000
+            });
+
+            setEmail('');
+            setPassword('');
+            return;
+          }
+
           throw signUpError;
         }
 
@@ -195,14 +220,14 @@ const Auth = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="flex items-center gap-2 mb-8">
         <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#9b87f5] to-[#1EAEDB] flex items-center justify-center">
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
+              </svg>
+            </div>
         <span className="text-2xl font-bold">
-          Flow<span className="text-[#9b87f5]">Easy</span>
-        </span>
-      </div>
+              Flow<span className="text-[#9b87f5]">Easy</span>
+            </span>
+          </div>
 
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
@@ -237,8 +262,8 @@ const Auth = () => {
                 required
                 className="bg-gray-800 border-gray-700 text-white placeholder-gray-400"
               />
-            </div>
-            
+        </div>
+
             {error && (
               <div className="text-red-500 text-sm text-center">
                 {error}
@@ -251,7 +276,7 @@ const Auth = () => {
                     Reenviar email de confirmação
                   </button>
                 )}
-              </div>
+        </div>
             )}
 
             <Button 
@@ -270,7 +295,7 @@ const Auth = () => {
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
             </button>
-          </div>
+      </div>
         </CardContent>
       </Card>
     </div>

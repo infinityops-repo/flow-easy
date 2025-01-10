@@ -3,7 +3,10 @@ project_id = "juaeaocrdoaxwuybjkkv"
 [auth]
 enabled = true
 site_url = "https://floweasy.run"
-additional_redirect_urls = ["https://floweasy.run/auth/callback"]
+additional_redirect_urls = [
+  "https://floweasy.run/auth/callback",
+  "https://floweasy.run/auth"
+]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
@@ -32,3 +35,22 @@ confirm_email_expiry_time = 86400
 [auth.email.template]
 [auth.email.template.confirmation]
 content_path = ""
+
+[auth.external]
+apple_enabled = false
+azure_enabled = false
+bitbucket_enabled = false
+discord_enabled = false
+facebook_enabled = false
+github_enabled = false
+gitlab_enabled = false
+google_enabled = false
+keycloak_enabled = false
+linkedin_enabled = false
+notion_enabled = false
+spotify_enabled = false
+slack_enabled = false
+twitch_enabled = false
+twitter_enabled = false
+workos_enabled = false
+zoom_enabled = false
