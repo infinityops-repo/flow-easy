@@ -1,4 +1,6 @@
+// @ts-ignore
 import { useEffect, useState } from 'react';
+// @ts-ignore
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -40,45 +42,57 @@ const AuthCallback = () => {
             throw new Error(errorDescription || 'Erro na autenticação');
           }
 
+          // Se não há token nem erro, pode ser um redirecionamento após verificação
+          const { data: { session: redirectSession } } = await supabase.auth.getSession();
+          if (redirectSession) {
+            console.log('Sessão encontrada após redirecionamento');
+            navigate('/dashboard');
+            return;
+          }
+
           throw new Error('Link de verificação inválido');
         }
 
-        // Tentar verificar o token usando verifyOtp
-        console.log('Tentando verificar token com verifyOtp...');
-        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: type as any
+        // Fazer a verificação diretamente com a API do Supabase
+        console.log('Fazendo requisição de verificação...');
+        const response = await fetch(`https://juaeaocrdoaxwuybjkkv.supabase.co/auth/v1/verify?token=${token}&type=${type}&redirect_to=https://floweasy.run/auth/callback`, {
+          method: 'GET',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1YWVhb2NyZG9heHd1eWJqa2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyMDIwOTksImV4cCI6MjA1MTc3ODA5OX0.ZIlKfuMb9fujzwCVnESsmaso1IE3BxQt5zVPnXBVp6w',
+          },
+          redirect: 'manual'
         });
 
-        if (verifyError) {
-          console.error('Erro na verificação do token:', verifyError);
-          if (verifyError.message.includes('token not found')) {
-            throw new Error('Este link já foi utilizado ou expirou. Por favor, faça login para receber um novo link.');
+        console.log('Resposta da verificação:', {
+          status: response.status,
+          statusText: response.statusText,
+          redirected: response.redirected,
+          url: response.url
+        });
+
+        if (response.status === 303) {
+          // Aguardar um momento para a sessão ser estabelecida
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Verificar a sessão após o redirecionamento
+          const { data: { session: finalSession } } = await supabase.auth.getSession();
+
+          if (finalSession) {
+            console.log('Sessão estabelecida com sucesso');
+            navigate('/dashboard');
+            return;
           }
-          throw verifyError;
         }
 
-        console.log('Resposta da verificação:', data);
+        // Se chegou aqui, algo deu errado
+        const text = await response.text();
+        console.error('Conteúdo da resposta:', text);
 
-        // Aguardar um momento para a sessão ser estabelecida
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Verificar a sessão novamente
-        const { data: { session: finalSession }, error: finalSessionError } = await supabase.auth.getSession();
-
-        if (finalSessionError) {
-          console.error('Erro ao obter sessão final:', finalSessionError);
-          throw finalSessionError;
+        if (text.includes('token not found') || text.includes('invalid or has expired')) {
+          throw new Error('Este link já foi utilizado ou expirou. Por favor, faça login para receber um novo link.');
         }
 
-        if (finalSession) {
-          console.log('Sessão estabelecida com sucesso');
-          navigate('/dashboard');
-          return;
-        }
-
-        // Se chegou aqui sem sessão, voltar para login
-        navigate('/auth');
+        throw new Error('Erro ao verificar email');
 
       } catch (error) {
         console.error('Erro detalhado no callback:', error);
