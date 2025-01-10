@@ -105,7 +105,10 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: 'https://floweasy.run/auth/callback'
+            emailRedirectTo: 'https://floweasy.run/auth/callback',
+            data: {
+              email_confirm_sent_at: new Date().toISOString()
+            }
           }
         });
 

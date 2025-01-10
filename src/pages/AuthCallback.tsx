@@ -23,53 +23,42 @@ const AuthCallback = () => {
           return;
         }
 
-        // Verificar parâmetros de erro
+        // Extrair token e tipo da URL
         const searchParams = new URLSearchParams(window.location.search);
-        const errorCode = searchParams.get('error_code');
-        const errorDescription = searchParams.get('error_description');
-
-        if (errorCode || errorDescription) {
-          const errorMessage = errorDescription || 'O link de confirmação expirou ou é inválido';
-          console.error('Erro detectado na URL:', errorMessage);
-          throw new Error(errorMessage);
-        }
-
-        // Verificar token
         const token = searchParams.get('token');
-        const type = searchParams.get('type');
+        const type = searchParams.get('type') || 'signup';
+
+        console.log('Parâmetros encontrados:', { token, type });
 
         if (!token) {
-          console.log('Nenhum token encontrado');
+          console.log('Nenhum token encontrado, verificando hash...');
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const error = hashParams.get('error');
+          const errorDescription = hashParams.get('error_description');
+
+          if (error || errorDescription) {
+            throw new Error(errorDescription || 'Erro na autenticação');
+          }
+
           throw new Error('Link de verificação inválido');
         }
 
-        console.log('Iniciando verificação do token');
-        const response = await fetch(`https://juaeaocrdoaxwuybjkkv.supabase.co/auth/v1/verify?token=${token}&type=${type || 'signup'}&redirect_to=https://floweasy.run/auth/callback`, {
-          method: 'GET',
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1YWVhb2NyZG9heHd1eWJqa2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyMDIwOTksImV4cCI6MjA1MTc3ODA5OX0.ZIlKfuMb9fujzwCVnESsmaso1IE3BxQt5zVPnXBVp6w',
-          },
-          redirect: 'follow' // Seguir redirecionamentos automaticamente
+        // Tentar verificar o token usando verifyOtp
+        console.log('Tentando verificar token com verifyOtp...');
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: type as any
         });
 
-        console.log('Resposta da verificação:', {
-          status: response.status,
-          statusText: response.statusText,
-          redirected: response.redirected,
-          url: response.url
-        });
-
-        // Se a resposta não for ok, tentar ler o corpo para verificar o erro
-        if (!response.ok) {
-          const text = await response.text().catch(() => '');
-          console.log('Conteúdo da resposta:', text);
-
-          if (text.includes('One-time token not found') || text.includes('invalid or has expired')) {
-            throw new Error('Este link já foi utilizado. Por favor, faça login normalmente.');
+        if (verifyError) {
+          console.error('Erro na verificação do token:', verifyError);
+          if (verifyError.message.includes('token not found')) {
+            throw new Error('Este link já foi utilizado ou expirou. Por favor, faça login para receber um novo link.');
           }
-
-          throw new Error('Erro ao verificar email');
+          throw verifyError;
         }
+
+        console.log('Resposta da verificação:', data);
 
         // Aguardar um momento para a sessão ser estabelecida
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -77,23 +66,22 @@ const AuthCallback = () => {
         // Verificar a sessão novamente
         const { data: { session: finalSession }, error: finalSessionError } = await supabase.auth.getSession();
 
+        if (finalSessionError) {
+          console.error('Erro ao obter sessão final:', finalSessionError);
+          throw finalSessionError;
+        }
+
         if (finalSession) {
           console.log('Sessão estabelecida com sucesso');
           navigate('/dashboard');
           return;
         }
 
-        if (finalSessionError) {
-          console.error('Erro ao obter sessão final:', finalSessionError);
-          throw finalSessionError;
-        }
-
-        // Se chegou aqui sem sessão, tentar login
+        // Se chegou aqui sem sessão, voltar para login
         navigate('/auth');
 
       } catch (error) {
         console.error('Erro detalhado no callback:', error);
-        
         setError(error.message || 'Erro ao processar autenticação');
         toast({
           title: "Erro na verificação",
@@ -101,7 +89,6 @@ const AuthCallback = () => {
           variant: "destructive",
           duration: 6000
         });
-        
         setTimeout(() => navigate('/auth'), 3000);
       }
     };
