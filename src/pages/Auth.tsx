@@ -119,8 +119,8 @@ const Auth = () => {
 
         toast({
           title: "Conta criada com sucesso!",
-          description: "Por favor, verifique seu email para confirmar sua conta. Você receberá um link de confirmação em alguns minutos.",
-          duration: 10000 // 10 segundos para dar tempo de ler
+          description: "Por favor, verifique seu email para confirmar sua conta. O link de confirmação expira em 1 hora.",
+          duration: 10000
         });
 
         setEmail('');

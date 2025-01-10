@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -6,27 +6,44 @@ import { useToast } from "@/hooks/use-toast";
 const AuthCallback = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Verificar se há erro no hash da URL
+        const hash = window.location.hash;
+        if (hash.includes('error=access_denied') || hash.includes('error_code=otp_expired')) {
+          setError('O link de confirmação expirou ou é inválido');
+          toast({
+            title: "Link inválido",
+            description: "O link de confirmação expirou ou é inválido. Por favor, faça login para receber um novo link.",
+            variant: "destructive",
+            duration: 6000
+          });
+          setTimeout(() => navigate('/auth'), 3000);
+          return;
+        }
+
         // Obter a sessão atual
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Erro ao verificar sessão:', error);
+        if (sessionError) {
+          console.error('Erro ao verificar sessão:', sessionError);
+          setError('Erro ao verificar sua sessão');
           toast({
             title: "Erro",
             description: "Houve um erro ao verificar sua sessão. Por favor, tente fazer login novamente.",
             variant: "destructive"
           });
-          navigate('/auth');
+          setTimeout(() => navigate('/auth'), 3000);
           return;
         }
 
         if (!session) {
           console.log('Nenhuma sessão encontrada, redirecionando para login');
-          navigate('/auth');
+          setError('Sessão não encontrada');
+          setTimeout(() => navigate('/auth'), 3000);
           return;
         }
 
@@ -36,12 +53,13 @@ const AuthCallback = () => {
         
       } catch (error) {
         console.error('Erro no callback:', error);
+        setError('Erro ao processar autenticação');
         toast({
           title: "Erro",
           description: "Houve um erro ao processar sua autenticação. Por favor, tente fazer login novamente.",
           variant: "destructive"
         });
-        navigate('/auth');
+        setTimeout(() => navigate('/auth'), 3000);
       }
     };
 
@@ -55,7 +73,9 @@ const AuthCallback = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       </div>
-      <h2 className="mt-4 text-xl text-white">Verificando autenticação...</h2>
+      <h2 className="mt-4 text-xl text-white">
+        {error || 'Verificando autenticação...'}
+      </h2>
     </div>
   );
 };
