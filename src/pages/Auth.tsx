@@ -62,10 +62,7 @@ const Auth = () => {
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            redirect_url: `${window.location.origin}/auth/callback`
-          }
+          emailRedirectTo: 'https://floweasy.run/auth/callback'
         }
       });
 
@@ -93,7 +90,10 @@ const Auth = () => {
     setError(null);
 
     try {
-      console.log('Iniciando processo de autenticação...');
+      console.log('Iniciando processo de autenticação...', {
+        mode: isSignUp ? 'signup' : 'login',
+        email
+      });
       
       if (isSignUp) {
         if (password.length < 6) {
@@ -105,27 +105,34 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-            data: {
-              redirect_url: `${window.location.origin}/auth/callback`
-            }
+            emailRedirectTo: 'https://floweasy.run/auth/callback'
           }
         });
 
         if (signUpError) {
-          console.error('Erro no signup:', signUpError);
+          console.error('Erro detalhado no signup:', {
+            error: signUpError,
+            code: signUpError.code,
+            message: signUpError.message,
+            details: signUpError.details
+          });
           throw signUpError;
         }
 
         if (!authData.user) {
+          console.error('Usuário não criado após signup bem-sucedido');
           throw new Error('Erro ao criar usuário');
         }
 
-        console.log('Usuário criado com sucesso');
+        console.log('Usuário criado com sucesso:', {
+          id: authData.user.id,
+          email: authData.user.email,
+          confirmationSent: authData.user.confirmation_sent_at
+        });
 
         toast({
           title: "Conta criada com sucesso!",
-          description: "Por favor, verifique seu email para confirmar sua conta. O link de confirmação expira em 1 hora.",
+          description: "Por favor, verifique seu email para confirmar sua conta. O link de confirmação expira em 24 horas.",
           duration: 10000
         });
 
@@ -134,37 +141,51 @@ const Auth = () => {
         return;
 
       } else {
-        console.log('Fazendo login...');
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        console.log('Iniciando processo de login...');
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (signInError) {
-          console.error('Erro no login:', signInError);
+          console.error('Erro detalhado no login:', {
+            error: signInError,
+            code: signInError.code,
+            message: signInError.message,
+            details: signInError.details
+          });
           throw signInError;
         }
 
-        console.log('Login realizado com sucesso');
+        console.log('Login realizado com sucesso:', {
+          userId: signInData.user?.id,
+          email: signInData.user?.email,
+          session: signInData.session?.access_token ? 'Presente' : 'Ausente'
+        });
       }
 
       navigate('/dashboard');
 
     } catch (err) {
-      console.error('Erro detalhado:', err);
+      console.error('Erro detalhado na autenticação:', {
+        error: err,
+        name: err.name,
+        message: err.message,
+        stack: err.stack
+      });
       
       if (err.message.includes('Email not confirmed')) {
         setError('Por favor confirme seu email antes de fazer login');
       } else if (err.message.includes('Invalid login credentials')) {
-        setError('Email ou senha incorretos');
-      } else if (err.message.includes('User already registered')) {
-        setError('Este email já está cadastrado');
+        setError('Email ou senha inválidos');
+      } else if (err.message.includes('Email rate limit exceeded')) {
+        setError('Muitas tentativas. Por favor, aguarde alguns minutos antes de tentar novamente.');
       } else {
-        setError(err.message || 'Ocorreu um erro durante a autenticação');
+        setError(err.message);
       }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
