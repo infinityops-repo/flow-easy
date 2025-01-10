@@ -62,7 +62,10 @@ const Auth = () => {
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: 'https://floweasy.run/auth/callback'
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            redirect_url: `${window.location.origin}/auth/callback`
+          }
         }
       });
 
@@ -102,7 +105,10 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: 'https://floweasy.run/auth/callback'
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: {
+              redirect_url: `${window.location.origin}/auth/callback`
+            }
           }
         });
 
