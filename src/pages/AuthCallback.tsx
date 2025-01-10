@@ -39,113 +39,71 @@ const AuthCallback = () => {
           return;
         }
 
-        // Obter a sessão atual
-        console.log('Tentando obter sessão do Supabase');
+        // Tentar recuperar a sessão primeiro
+        console.log('Tentando recuperar sessão...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (session) {
+          console.log('Sessão encontrada, redirecionando para dashboard');
+          navigate('/dashboard');
+          return;
+        }
+
+        // Se não há sessão, tentar verificar o token
+        const token = searchParams.get('token');
+        const type = searchParams.get('type');
         
-        if (sessionError) {
-          console.error('Erro ao verificar sessão:', {
-            error: sessionError,
-            code: sessionError.code,
-            message: sessionError.message,
-            details: sessionError.details
-          });
-          setError('Erro ao verificar sua sessão');
-          toast({
-            title: "Erro",
-            description: `Erro ao verificar sua sessão: ${sessionError.message}`,
-            variant: "destructive"
-          });
+        console.log('Parâmetros encontrados:', { token, type });
+
+        if (!token) {
+          console.log('Nenhum token encontrado, verificando hash...');
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+
+          if (accessToken) {
+            console.log('Access token encontrado no hash');
+            // Se temos um access_token, significa que a autenticação já foi feita
+            navigate('/dashboard');
+            return;
+          }
+
+          setError('Link de verificação inválido ou expirado');
           setTimeout(() => navigate('/auth'), 3000);
           return;
         }
 
-        if (!session) {
-          console.log('Nenhuma sessão encontrada, verificando token na URL');
-          
-          // Extrair token da URL
-          const token = searchParams.get('token');
-          const type = searchParams.get('type');
-          
-          console.log('Parâmetros encontrados:', { token, type });
-          
-          if (token) {
-            console.log('Token encontrado na URL, tentando verificar');
-            try {
-              const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                token_hash: token,
-                type: type as any || 'signup'
-              });
-
-              if (verifyError) {
-                console.error('Erro ao verificar token:', {
-                  error: verifyError,
-                  code: verifyError.code,
-                  message: verifyError.message,
-                  details: verifyError.details
-                });
-                throw verifyError;
-              }
-
-              if (data?.user) {
-                console.log('Verificação bem-sucedida:', {
-                  userId: data.user.id,
-                  email: data.user.email
-                });
-                navigate('/dashboard');
-                return;
-              }
-            } catch (verifyError) {
-              console.error('Erro na verificação:', verifyError);
-              throw verifyError;
-            }
-          } else {
-            // Se não encontrou o token na query, tenta no hash
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            const tokenHash = hashParams.get('access_token');
-            
-            if (tokenHash) {
-              console.log('Token hash encontrado no hash da URL:', tokenHash);
-              try {
-                const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                  token_hash: tokenHash,
-                  type: 'signup'
-                });
-
-                if (verifyError) {
-                  console.error('Erro ao verificar token hash:', verifyError);
-                  throw verifyError;
-                }
-
-                if (data?.user) {
-                  console.log('Verificação por hash bem-sucedida:', {
-                    userId: data.user.id,
-                    email: data.user.email
-                  });
-                  navigate('/dashboard');
-                  return;
-                }
-              } catch (verifyError) {
-                console.error('Erro na verificação por hash:', verifyError);
-                throw verifyError;
-              }
-            } else {
-              console.log('Nenhum token encontrado na URL (nem query nem hash)');
-              setError('Link de verificação inválido ou expirado');
-              setTimeout(() => navigate('/auth'), 3000);
-              return;
-            }
+        // Se temos um token, fazer a verificação diretamente com a API do Supabase
+        console.log('Tentando verificar token diretamente...');
+        const response = await fetch(`https://juaeaocrdoaxwuybjkkv.supabase.co/auth/v1/verify?token=${token}&type=${type || 'signup'}&redirect_to=https://floweasy.run/auth/callback`, {
+          method: 'GET',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1YWVhb2NyZG9heHd1eWJqa2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyMDIwOTksImV4cCI6MjA1MTc3ODA5OX0.ZIlKfuMb9fujzwCVnESsmaso1IE3BxQt5zVPnXBVp6w',
           }
+        });
+
+        if (!response.ok) {
+          const responseData = await response.json().catch(() => ({}));
+          console.error('Erro na verificação:', responseData);
+          throw new Error(responseData.error_description || 'Erro ao verificar email');
         }
 
-        // Se chegou aqui, temos uma sessão válida
-        console.log('Sessão válida encontrada:', {
-          userId: session.user.id,
-          email: session.user.email,
-          lastSignIn: session.user.last_sign_in_at
-        });
-        navigate('/dashboard');
+        // Após a verificação, tentar obter a sessão novamente
+        const { data: { session: newSession }, error: newSessionError } = await supabase.auth.getSession();
         
+        if (newSession) {
+          console.log('Nova sessão criada após verificação');
+          navigate('/dashboard');
+          return;
+        }
+
+        if (newSessionError) {
+          console.error('Erro ao obter nova sessão:', newSessionError);
+          throw newSessionError;
+        }
+
+        // Se chegou aqui sem sessão, algo deu errado
+        throw new Error('Não foi possível criar uma sessão após a verificação');
+
       } catch (error) {
         console.error('Erro detalhado no callback:', {
           error,
@@ -154,15 +112,18 @@ const AuthCallback = () => {
           stack: error.stack,
           url: window.location.href
         });
+        
         setError('Erro ao processar autenticação');
         toast({
           title: "Erro",
-          description: `Erro ao processar autenticação: ${error.message}`,
-          variant: "destructive"
+          description: error.message || 'Erro ao processar autenticação',
+          variant: "destructive",
+          duration: 6000
         });
+        
         setTimeout(() => navigate('/auth'), 3000);
       }
-    }
+    };
 
     handleCallback();
   }, [navigate, toast]);
