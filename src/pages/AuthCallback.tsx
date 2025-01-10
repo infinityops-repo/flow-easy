@@ -78,8 +78,33 @@ const AuthCallback = () => {
           method: 'GET',
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1YWVhb2NyZG9heHd1eWJqa2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyMDIwOTksImV4cCI6MjA1MTc3ODA5OX0.ZIlKfuMb9fujzwCVnESsmaso1IE3BxQt5zVPnXBVp6w',
-          }
+          },
+          redirect: 'follow' // Seguir redirecionamentos
         });
+
+        console.log('Resposta da verificação:', {
+          status: response.status,
+          statusText: response.statusText,
+          redirected: response.redirected,
+          url: response.url
+        });
+
+        if (response.redirected) {
+          console.log('Redirecionado para:', response.url);
+          // Se foi redirecionado, tentar obter a sessão
+          const { data: { session: redirectSession }, error: redirectError } = await supabase.auth.getSession();
+          
+          if (redirectSession) {
+            console.log('Sessão obtida após redirecionamento');
+            navigate('/dashboard');
+            return;
+          }
+
+          if (redirectError) {
+            console.error('Erro após redirecionamento:', redirectError);
+            throw redirectError;
+          }
+        }
 
         if (!response.ok) {
           const responseData = await response.json().catch(() => ({}));
