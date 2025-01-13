@@ -27,14 +27,46 @@ const AuthCallback = () => {
         const error = searchParams.get('error');
         const errorDescription = searchParams.get('error_description');
         const email = searchParams.get('email');
+        const accessToken = searchParams.get('access_token');
 
+        // Log dos parâmetros (ocultando informações sensíveis)
         console.log('Parâmetros da URL:', {
           token: token ? `${token.substring(0, 10)}...` : null,
           type,
           error,
           errorDescription,
-          email: email ? `${email.substring(0, 3)}...` : null
+          email: email ? `${email.substring(0, 3)}...` : null,
+          hasAccessToken: !!accessToken
         });
+
+        // Se já temos um access_token, significa que o redirecionamento foi bem-sucedido
+        if (accessToken) {
+          console.log('Access token encontrado, verificando sessão...');
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (session) {
+            console.log('Sessão encontrada com access token');
+            navigate('/dashboard');
+            return;
+          }
+
+          // Se não tem sessão mas tem access_token, tentar estabelecer
+          try {
+            console.log('Tentando estabelecer sessão com access token');
+            const { error: setSessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: searchParams.get('refresh_token') || ''
+            });
+
+            if (!setSessionError) {
+              console.log('Sessão estabelecida com sucesso');
+              navigate('/dashboard');
+              return;
+            }
+          } catch (error) {
+            console.error('Erro ao estabelecer sessão:', error);
+          }
+        }
 
         // Verificar erros nos parâmetros
         if (error || errorDescription) {
@@ -50,45 +82,48 @@ const AuthCallback = () => {
           return;
         }
 
-        // Verificar token
-        if (!token) {
-          console.log('Nenhum token encontrado');
-          if (email) {
-            console.log('Email encontrado, tentando reenviar verificação');
-            const { error: signInError } = await supabase.auth.signInWithOtp({
-              email,
-              options: {
-                emailRedirectTo: 'https://floweasy.run/auth/callback'
-              }
-            });
+        // Se não temos token nem email, erro
+        if (!token && !email) {
+          console.log('Nenhum token ou email encontrado');
+          throw new Error('Link de verificação inválido');
+        }
 
-            if (signInError) {
-              console.error('Erro ao reenviar email:', signInError);
-              throw new Error('Erro ao reenviar email de verificação');
+        // Se temos email mas não token, tentar reenviar
+        if (email && !token) {
+          console.log('Email encontrado, tentando reenviar verificação');
+          const { error: signInError } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: 'https://floweasy.run/auth/callback'
             }
+          });
 
-            toast({
-              title: "Email reenviado",
-              description: "Um novo email de verificação foi enviado. Por favor, verifique sua caixa de entrada.",
-              duration: 6000
-            });
-          } else {
-            throw new Error('Link de verificação inválido');
+          if (signInError) {
+            console.error('Erro ao reenviar email:', signInError);
+            throw new Error('Erro ao reenviar email de verificação');
           }
+
+          toast({
+            title: "Email reenviado",
+            description: "Um novo email de verificação foi enviado. Por favor, verifique sua caixa de entrada.",
+            duration: 6000
+          });
           
           setTimeout(() => navigate('/auth'), 3000);
           return;
         }
 
+        // Se chegamos aqui, temos um token para verificar
         try {
           console.log('Iniciando verificação do token');
           
-          // Tentar verificar com verifyOtp primeiro
+          // Tentar verificar com verifyOtp
           const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
             token,
             type: type as any || 'signup'
           });
 
+          // Se houver erro na verificação
           if (verifyError) {
             console.error('Erro na verificação do token:', verifyError);
             
@@ -120,23 +155,12 @@ const AuthCallback = () => {
               throw new Error('Link de verificação expirado. Por favor, faça login para receber um novo link.');
             }
             
-            // Se não for erro de token, tentar signInWithOtp como fallback
-            console.log('Tentando signInWithOtp como fallback');
-            const { error: signInError } = await supabase.auth.signInWithOtp({
-              email: email || '',
-              token,
-              type: 'signup'
-            });
-
-            if (signInError) {
-              console.error('Erro no fallback signInWithOtp:', signInError);
-              throw signInError;
-            }
+            throw verifyError;
           }
 
           // Aguardar um momento para a sessão ser estabelecida
-          console.log('Aguardando estabelecimento da sessão...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          console.log('Token verificado, aguardando estabelecimento da sessão...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
           // Verificar se a sessão foi estabelecida
           const { data: { session: finalSession }, error: sessionError } = await supabase.auth.getSession();
@@ -152,22 +176,17 @@ const AuthCallback = () => {
             return;
           }
 
-          // Se chegou aqui sem sessão, tentar atualizar a sessão
+          // Se ainda não temos sessão, tentar atualizar
           console.log('Tentando atualizar sessão...');
           const { error: refreshError } = await supabase.auth.refreshSession();
           
-          if (refreshError) {
-            console.error('Erro ao atualizar sessão:', refreshError);
-            throw new Error('Não foi possível estabelecer sua sessão');
-          }
-
-          // Verificar sessão uma última vez
-          const { data: { session: finalSession2 } } = await supabase.auth.getSession();
-          
-          if (finalSession2) {
-            console.log('Sessão estabelecida após atualização');
-            navigate('/dashboard');
-            return;
+          if (!refreshError) {
+            const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+            if (refreshedSession) {
+              console.log('Sessão estabelecida após atualização');
+              navigate('/dashboard');
+              return;
+            }
           }
 
           throw new Error('Não foi possível estabelecer sua sessão');
