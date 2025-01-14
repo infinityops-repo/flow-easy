@@ -1,83 +1,19 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { Toaster } from "@/components/ui/toaster"
-import { Toaster as Sonner } from "@/components/ui/sonner"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
-import { useEffect, useState } from "react"
-import { supabase } from "@/integrations/supabase/client"
-import Index from "./pages/Index"
-import Auth from "./pages/Auth"
-import { SettingsPage } from '@/components/SettingsPage'
-import AuthCallback from '@/pages/AuthCallback'
-import './App.css'
+import Auth from "@/pages/Auth"
+import AuthCallback from "@/pages/AuthCallback"
+import WorkflowBuilder from "@/pages/WorkflowBuilder"
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-    },
-  },
-})
-
-const PrivateRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        setIsAuthenticated(!!session)
-      } catch (error) {
-        console.error("Error checking auth status:", error)
-        setIsAuthenticated(false)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkAuth()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session)
-      setIsLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    )
-  }
-
-  return isAuthenticated ? children : <Navigate to="/auth" replace />
-}
-
-const App = () => {
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Router>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/settings" element={
-              <PrivateRoute>
-                <SettingsPage />
-              </PrivateRoute>
-            } />
-            <Route path="*" element={<Index />} />
-          </Routes>
-          <Toaster />
-          <Sonner />
-        </Router>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Auth />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/workflow" element={<WorkflowBuilder />} />
+      </Routes>
+      <Toaster />
+    </Router>
   )
 }
 
