@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Bot, Loader2, MessageSquare, Plus, Settings, Trash } from "lucide-react"
+import { Bot, Loader2, MessageSquare, Plus, Trash } from "lucide-react"
 
 interface WorkflowTemplate {
   id: string
@@ -61,7 +61,6 @@ export default function WorkflowBuilder() {
   const handleSave = async () => {
     setIsLoading(true)
     try {
-      // Simular salvamento
       await new Promise(resolve => setTimeout(resolve, 1000))
       toast({
         title: "Sucesso!",
@@ -79,128 +78,123 @@ export default function WorkflowBuilder() {
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Workflow Builder</h1>
-        <Button onClick={handleSave} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Salvar Workflow
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex flex-col gap-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold gradient-text">Flow Easy</h1>
+              <p className="text-muted-foreground mt-2">Construa seus workflows de forma simples e intuitiva</p>
+            </div>
+            <Button onClick={handleSave} disabled={isLoading} size="lg">
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar Workflow
+            </Button>
+          </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Templates</CardTitle>
-              <CardDescription>
-                Escolha um template para começar
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {templates.map((template) => (
-                  <Button
-                    key={template.id}
-                    variant={selectedTemplate === template.id ? "default" : "outline"}
-                    className="w-full justify-start"
-                    onClick={() => handleTemplateSelect(template.id)}
-                  >
-                    {template.icon}
-                    <span className="ml-2">{template.title}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="col-span-9">
-          <Tabs defaultValue="messages">
-            <TabsList>
-              <TabsTrigger value="messages">Mensagens</TabsTrigger>
-              <TabsTrigger value="settings">Configurações</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="messages">
-              <Card>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-3">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Mensagens</CardTitle>
+                  <CardTitle>Templates</CardTitle>
                   <CardDescription>
-                    Adicione as mensagens do seu workflow
+                    Escolha um template para começar
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex space-x-2">
-                      <div className="flex-1">
-                        <Label htmlFor="message">Nova Mensagem</Label>
-                        <Textarea
-                          id="message"
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Digite sua mensagem..."
-                        />
-                      </div>
+                    {templates.map((template) => (
                       <Button
-                        className="mt-8"
-                        onClick={handleAddMessage}
-                        disabled={!newMessage.trim()}
+                        key={template.id}
+                        variant={selectedTemplate === template.id ? "default" : "secondary"}
+                        className="w-full justify-start gap-3 h-auto py-4"
+                        onClick={() => handleTemplateSelect(template.id)}
                       >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <ScrollArea className="h-[400px] pr-4">
-                      {messages.map((message, index) => (
-                        <div key={index}>
-                          <div className="flex items-start space-x-2 py-2">
-                            <div className="flex-1">
-                              <p className="text-sm">{message}</p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteMessage(index)}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          {index < messages.length - 1 && <Separator />}
+                        {template.icon}
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{template.title}</span>
+                          <span className="text-xs text-muted-foreground">{template.description}</span>
                         </div>
-                      ))}
-                    </ScrollArea>
+                      </Button>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="settings">
-              <Card>
+            <div className="md:col-span-9">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Configurações</CardTitle>
-                  <CardDescription>
-                    Configure as opções do seu workflow
-                  </CardDescription>
+                  <Tabs defaultValue="messages" className="w-full">
+                    <TabsList className="w-full justify-start">
+                      <TabsTrigger value="messages" className="flex-1">Mensagens</TabsTrigger>
+                      <TabsTrigger value="settings" className="flex-1">Configurações</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="messages" className="mt-6">
+                      <div className="space-y-4">
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <Label htmlFor="message">Nova Mensagem</Label>
+                            <Textarea
+                              id="message"
+                              value={newMessage}
+                              onChange={(e) => setNewMessage(e.target.value)}
+                              placeholder="Digite sua mensagem..."
+                              className="mt-2"
+                            />
+                          </div>
+                          <Button
+                            className="mt-8"
+                            onClick={handleAddMessage}
+                            disabled={!newMessage.trim()}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <ScrollArea className="h-[400px] pr-4">
+                          <div className="space-y-4">
+                            {messages.map((message, index) => (
+                              <Card key={index} className="bg-card/50">
+                                <CardContent className="flex items-start justify-between p-4">
+                                  <p className="text-sm flex-1">{message}</p>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteMessage(index)}
+                                    className="ml-2 hover:bg-destructive/10 hover:text-destructive"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="settings" className="mt-6">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Nome do Workflow</Label>
+                          <Input id="name" placeholder="Digite o nome..." />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Descrição</Label>
+                          <Textarea
+                            id="description"
+                            placeholder="Digite a descrição..."
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome do Workflow</Label>
-                      <Input id="name" placeholder="Digite o nome..." />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Descrição</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Digite a descrição..."
-                      />
-                    </div>
-                  </div>
-                </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
         </div>
       </div>
     </div>
