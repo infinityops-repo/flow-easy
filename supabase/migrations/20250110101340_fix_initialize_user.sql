@@ -31,3 +31,7 @@ GRANT EXECUTE ON FUNCTION initialize_user(UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION initialize_user(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION initialize_user(UUID) TO anon;
 
+
+
+
+

@@ -158,7 +158,7 @@ const Auth = () => {
           confirmationSent: authData.user.confirmation_sent_at
         });
 
-        toast({
+          toast({
           title: "Conta criada com sucesso!",
           description: "Por favor, verifique seu email para confirmar sua conta. O link de confirmação expira em 24 horas.",
           duration: 10000
